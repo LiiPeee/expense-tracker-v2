@@ -1,0 +1,31 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Start Worker",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "",
+      "program": "${workspaceFolder}/src/worker/bin/Debug/net8.0/ExpenseTrackerV2.Worker.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/ExpenseTrackerV2.Worker",
+      "stopAtEntry": false
+    },
+    {
+      "name": "Start WebAPI",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "",
+      "program": "${workspaceFolder}/src/webapi/bin/Debug/net8.0/ExpenseTrackerV2.Api.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/ExpenseTrackerV2.Api",
+      "stopAtEntry": false
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Start Worker and WebAPI",
+      "configurations": ["Start Worker", "Start WebAPI"]
+    }
+  ]
+}
