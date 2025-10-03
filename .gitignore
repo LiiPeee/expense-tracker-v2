@@ -1,0 +1,69 @@
+# Arquivos e pastas gerados por build
+bin/
+obj/
+
+# Arquivos de configuração específicos do Visual Studio
+.vscode/
+.vs/
+.idea/
+
+# Arquivos de configuração específicos do Rider
+.idea/
+
+# Arquivos de cache do NuGet
+.nuget/
+
+# Arquivos de configuração do pacote NuGet
+packages/
+
+# Arquivos de log
+*.log
+
+# Arquivos de configurações locais do usuário
+usersecrets/
+
+# Arquivos de ambiente do Visual Studio
+*.user
+*.userosscache
+*.suo
+*.sln.docstates
+
+# Arquivos temporários de compilação
+*.tmp
+*.bak
+*.swp
+*.sublime-workspace
+
+# Arquivos do SQL Server
+*.mdf
+*.ldf
+*.bak
+
+# Arquivos do Docker
+**/Dockerfile
+**/docker-compose.yml
+**/docker-compose.override.yml
+**/.docker/
+
+# Arquivos do Kubernetes
+.k8s/
+*.kube/
+
+# Outros arquivos gerados por build e IDEs
+*.dbmdl
+*.sql
+*.pdb
+*.rsp
+*.cache
+*.designer.cs
+
+# Arquivos de teste do Visual Studio
+TestResults/
+
+# Folders para cache do ASP.NET
+wwwroot/
+
+# Folders do .NET Core/ASP.NET
+project.lock.json
+project.fragment.lock.json
+artifacts/

@@ -22,30 +22,4 @@ public class ExpenseTrackerDbContext : DbContext
     {
     }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        if (!optionsBuilder.IsConfigured && !string.IsNullOrEmpty(_connectionString))
-        {
-            optionsBuilder.UseSqlServer(_connectionString, providerOption =>
-            providerOption
-            .CommandTimeout(60))
-            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)
-            .EnableDetailedErrors()
-            .EnableSensitiveDataLogging();
-        }
-    }
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        ApplyAllConfigurations(modelBuilder);
-    }
-    private static void ApplyAllConfigurations(ModelBuilder modelBuilder)
-    {
-        modelBuilder
-        .ApplyConfiguration(new OrganizationConfiguration())
-        .ApplyConfiguration(new AccountConfiguration())
-        .ApplyConfiguration(new TransactionConfiguration())
-        .ApplyConfiguration(new CategoryConfiguration())
-        .ApplyConfiguration(new AddressConfiguration())
-        .ApplyConfiguration(new ContactConfiguration());
-    }
 }

@@ -11,9 +11,9 @@ namespace ExpenseTrackerV2.WebApi.Controller
         private readonly OrganzationAppService _organizationAppService = organizationAppService;
 
         [HttpPost("[action]")]
-        public Task<string> CreateAsync()
+        public async Task<string> CreateAsync()
         {
-            return Task.FromResult("Organization Created");
+            return await _organizationAppService.CreateAsync();
         }
 
     }

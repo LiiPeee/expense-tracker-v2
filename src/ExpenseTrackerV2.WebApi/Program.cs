@@ -9,14 +9,14 @@ var appSettings = builder.Configuration.SetBasePath(Directory.GetCurrentDirector
     .AddEnvironmentVariables()
     .Build();
 
-var connectionString = builder.Configuration.GetConnectionString("ExpenseTrackerDbContext")
-    ?? throw new InvalidOperationException("Connection string 'ExpenseTrackerDbContext' not found.");
 
-builder.Services.AddInfrastructureWebApi(connectionString);
+builder.Services.AddInfrastructureWebApi(appSettings.GetConnectionString(nameof(ExpenseTrackerDbContext))!);
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 
+
 // Configure the HTTP request pipeline.
+
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
