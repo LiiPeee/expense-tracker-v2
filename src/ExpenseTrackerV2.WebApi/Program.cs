@@ -1,6 +1,6 @@
+using ExpenseTrackerV2.Application;
 using ExpenseTrackerV2.Infrastructure;
-using ExpenseTrackerV2.Infrastructure.Persistence.Dbcontext;
-using Microsoft.AspNetCore.Builder;
+
 
 var builder = WebApplication.CreateBuilder(args);
 var appSettings = builder.Configuration.SetBasePath(Directory.GetCurrentDirectory())
@@ -9,8 +9,8 @@ var appSettings = builder.Configuration.SetBasePath(Directory.GetCurrentDirector
     .AddEnvironmentVariables()
     .Build();
 
-
-builder.Services.AddInfrastructureWebApi(appSettings.GetConnectionString(nameof(ExpenseTrackerDbContext))!);
+builder.Services.ConfigureApplicationServicesWebApi();
+builder.Services.AddInfrastructureWebApi();
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 

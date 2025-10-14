@@ -2,9 +2,8 @@ using System;
 
 namespace ExpenseTrackerV2.Core.Domain.Entities;
 
-public class Address
+public class Address : BaseEntity
 {
-    public long Id { get; set; }
     public string Street { get; set; } = null!;
     public string City { get; set; } = null!;
     public string State { get; set; } = null!;

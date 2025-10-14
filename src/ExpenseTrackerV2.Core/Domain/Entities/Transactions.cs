@@ -1,14 +1,14 @@
-using System;
-using System.Diagnostics.Contracts;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using ExpenseTrackerV2.Core.Domain.Enum;
 
 namespace ExpenseTrackerV2.Core.Domain.Entities;
 
-public class Transaction
+public class Transactions : BaseEntity
 {
-    public long Id { get; set; }
     public decimal Amount { get; set; }
+
+    [Required]
     public string Description { get; set; } = null!;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public Category Category { get; set; } = null!;

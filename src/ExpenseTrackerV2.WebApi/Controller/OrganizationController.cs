@@ -1,5 +1,6 @@
+using ExpenseTrackerV2.Application.Dtos.Request;
 using ExpenseTrackerV2.Application.Service;
-using Microsoft.AspNetCore.Http;
+using ExpenseTrackerV2.Core.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExpenseTrackerV2.WebApi.Controller
@@ -11,9 +12,9 @@ namespace ExpenseTrackerV2.WebApi.Controller
         private readonly OrganzationAppService _organizationAppService = organizationAppService;
 
         [HttpPost("[action]")]
-        public async Task<string> CreateAsync()
+        public async Task<Organization> CreateAsync([FromBody] OrganizationRequest request)
         {
-            return await _organizationAppService.CreateAsync();
+            return await _organizationAppService.CreateAsync(request);
         }
 
     }

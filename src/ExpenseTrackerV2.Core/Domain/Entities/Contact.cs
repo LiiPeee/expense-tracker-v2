@@ -3,9 +3,8 @@ using ExpenseTrackerV2.Core.Domain.Enums;
 
 namespace ExpenseTrackerV2.Core.Domain.Entities;
 
-public class Contact
+public class Contact : BaseEntity
 {
-    public long Id { get; set; }
     public string Name { get; set; } = null!;
     public string? Email { get; set; }
     public string? Phone { get; set; }
@@ -15,5 +14,5 @@ public class Contact
     public long? AddressId { get; set; }
     public TypeContact Type { get; set; } = TypeContact.Personal;
     public bool IsActive { get; set; } = true;
-    public List<Transaction> Transactions { get; set; } = new();
+    public List<Transactions> Transaction { get; set; } = new();
 }

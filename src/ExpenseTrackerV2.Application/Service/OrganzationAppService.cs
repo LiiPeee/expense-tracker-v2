@@ -1,5 +1,6 @@
-using System;
-using ExpenseTrackerV2.Core.Ports.Out.Repository;
+using ExpenseTrackerV2.Application.Dtos.Request;
+using ExpenseTrackerV2.Core.Domain.Entities;
+using ExpenseTrackerV2.Core.Domain.Repository;
 
 namespace ExpenseTrackerV2.Application.Service;
 
@@ -7,8 +8,19 @@ public class OrganzationAppService(IOrganizationRepository organizationRepositor
 {
     private readonly IOrganizationRepository _organizationRepository = organizationRepository;
 
-    public Task<string> CreateAsync()
+    public async Task<Organization> CreateAsync(OrganizationRequest request)
     {
-        return Task.FromResult("Organization Created");
+        var organization = new Organization
+        {
+            Name = request.Name
+        };
+        var result = await _organizationRepository.AddAsync(organization);
+
+        if (result == null)
+        {
+            throw new Exception("Failed to create organization");
+        }
+        return result;
+
     }
 }

@@ -17,6 +17,6 @@ public class Account
     [JsonIgnore]
     public long OrganizationId { get; set; }
     [JsonIgnore]
-    public Organization Organization { get; set; } = null!;
-    public List<Transaction> Transactions { get; set; } = new();
+    public Organization Organization { get; set; }
+    public List<Transactions> Transactions { get; set; } = new();
 }

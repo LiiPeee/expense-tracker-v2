@@ -1,12 +1,12 @@
+using System;
 using ExpenseTrackerV2.Core.Domain.Entities;
 using ExpenseTrackerV2.Core.Domain.Repository;
 
-
 namespace ExpenseTrackerV2.Infrastructure.Persistence.Repository;
 
-public class OrganizationRepository : RepositoryBase<Organization>, IOrganizationRepository
+public class AccountRepository : RepositoryBase<Account>, IAccountRepository
 {
-    public OrganizationRepository(DapperContext context) : base(context)
+    public AccountRepository(DapperContext context) : base(context)
     {
     }
 }
