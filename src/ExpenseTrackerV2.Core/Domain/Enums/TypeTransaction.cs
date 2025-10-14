@@ -1,6 +1,6 @@
 namespace ExpenseTrackerV2.Core.Domain.Enums;
 
-public enum TypeCategory
+public enum TypeTransaction
 {
     Expense,
     Income,

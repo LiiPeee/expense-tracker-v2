@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using ExpenseTrackerV2.Core.Domain.Enum;
+using ExpenseTrackerV2.Core.Domain.Enums;
 
 namespace ExpenseTrackerV2.Core.Domain.Entities;
 
@@ -13,6 +14,7 @@ public class Transactions : BaseEntity
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public Category Category { get; set; } = null!;
     public long CategoryId { get; set; }
+    public TypeTransaction TypeTransaction { get; set; } = TypeTransaction.Expense;
     public bool Paid { get; set; }
     public int? NumberOfInstallment { get; set; }
     public DateTime? DateOfInstallment { get; set; }

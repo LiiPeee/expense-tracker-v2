@@ -9,5 +9,6 @@ public static class InfrastructureDependencyWebApi
 {
     public static IServiceCollection AddInfrastructureWebApi(this IServiceCollection services) => services
     .AddSingleton<DapperContext>()
-    .AddScoped<IOrganizationRepository, OrganizationRepository>();
+    .AddScoped<IOrganizationRepository, OrganizationRepository>()
+    .AddScoped<IAccountRepository, AccountRepository>();
 }

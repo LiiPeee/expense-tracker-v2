@@ -6,5 +6,6 @@ namespace ExpenseTrackerV2.Application;
 public static class ApplicationDependencyWebApi
 {
     public static IServiceCollection ConfigureApplicationServicesWebApi(this IServiceCollection services) => services
-        .AddScoped<OrganzationAppService>();
+        .AddScoped<OrganzationAppService>()
+        .AddScoped<AccountAppService>();
 }

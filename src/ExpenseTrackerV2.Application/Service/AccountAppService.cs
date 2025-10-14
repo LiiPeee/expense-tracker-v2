@@ -1,4 +1,3 @@
-using System;
 using ExpenseTrackerV2.Application.Dtos.Request;
 using ExpenseTrackerV2.Core.Domain.Entities;
 using ExpenseTrackerV2.Core.Domain.Repository;
@@ -12,8 +11,7 @@ public class AccountAppService(IAccountRepository accountRepository, IOrganizati
 
     public async Task<Account> CreateAsync(AccountRequest request)
     {
-
-        var organization = _organizationRepository.GetByIdAsync(request.OrganizationId);
+        var organization = await _organizationRepository.GetByIdAsync(request.OrganizationId) ?? throw new ArgumentException("We didnt find this organization");
 
         var account = new Account
         {
@@ -23,7 +21,6 @@ public class AccountAppService(IAccountRepository accountRepository, IOrganizati
             Password = request.Password,
             Balance = request.Balance,
             OrganizationId = organization.Id,
-            Organization = organization,
         };
 
         return await _accountRepository.AddAsync(account);
