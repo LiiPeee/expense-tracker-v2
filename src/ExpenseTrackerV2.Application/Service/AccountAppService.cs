@@ -1,15 +1,22 @@
 using ExpenseTrackerV2.Application.Dtos.Request;
 using ExpenseTrackerV2.Core.Domain.Entities;
 using ExpenseTrackerV2.Core.Domain.Repository;
+using ExpenseTrackerV2.Core.Domain.Service;
 
 namespace ExpenseTrackerV2.Application.Service;
 
-public class AccountAppService(IAccountRepository accountRepository, IOrganizationRepository organizationRepository)
+public class AccountAppService : IAccountAppService
 {
-    private readonly IAccountRepository _accountRepository = accountRepository;
-    private readonly IOrganizationRepository _organizationRepository = organizationRepository;
+    private readonly IAccountRepository _accountRepository;
+    private readonly IOrganizationRepository _organizationRepository;
 
-    public async Task<Account> CreateAsync(AccountRequest request)
+    public AccountAppService(IAccountRepository accountRepository, IOrganizationRepository organizationRepository)
+    {
+        _accountRepository = accountRepository;
+        _organizationRepository = organizationRepository;
+    }
+
+    public async Task CreateAsync(AccountRequest request)
     {
         var organization = await _organizationRepository.GetByIdAsync(request.OrganizationId) ?? throw new ArgumentException("We didnt find this organization");
 
@@ -23,7 +30,7 @@ public class AccountAppService(IAccountRepository accountRepository, IOrganizati
             OrganizationId = organization.Id,
         };
 
-        return await _accountRepository.AddAsync(account);
+        await _accountRepository.AddAsync(account);
     }
 
 

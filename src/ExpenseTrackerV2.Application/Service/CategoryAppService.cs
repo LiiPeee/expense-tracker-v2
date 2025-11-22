@@ -1,18 +1,18 @@
-// using System;
-// using ExpenseTrackerV2.Application.Dtos.Request;
-// using ExpenseTrackerV2.Core.Domain.Entities;
-// using ExpenseTrackerV2.Core.Domain.Repository;
+using System;
+using ExpenseTrackerV2.Application.Dtos.Request;
+using ExpenseTrackerV2.Core.Domain.Entities;
+using ExpenseTrackerV2.Core.Domain.Repository;
 
-// namespace ExpenseTrackerV2.Application.Service;
+namespace ExpenseTrackerV2.Application.Service;
 
-// public class CategoryAppService(ICategoryRepository categoryRepository)
-// {
+public class CategoryAppService(ICategoryRepository categoryRepository)
+{
 
-//     private readonly ICategoryRepository _categoryRepository = categoryRepository;
+    private readonly ICategoryRepository _categoryRepository = categoryRepository;
 
 
-//     public async Task<Category> CreateAsync(CategoryRequest request)
-//     {
-//     }
+    public async Task CreateAsync(CategoryRequest request)
+    {
+    }
 
-// }
+}
