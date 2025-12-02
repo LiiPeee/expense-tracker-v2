@@ -1,8 +1,6 @@
 using ExpenseTrackerV2.Application.Dtos.Request;
 using ExpenseTrackerV2.Application.Service;
-using ExpenseTrackerV2.Core.Domain.Entities;
 using ExpenseTrackerV2.WebApi.Filter;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExpenseTrackerV2.WebApi.Controller
@@ -15,9 +13,9 @@ namespace ExpenseTrackerV2.WebApi.Controller
 
         [HttpPost("[action]")]
         [AccountRequest]
-        public async Task<Account> CreateAsync([FromBody] AccountRequest request)
+        public async Task CreateAsync([FromBody] AccountRequest request)
         {
-            return await _accountAppService.CreateAsync(request);
+             await _accountAppService.CreateAsync(request);
         }
     }
 }

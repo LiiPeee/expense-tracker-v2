@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+using ExpenseTrackerV2.Core.Domain.Service;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExpenseTrackerV2.WebApi.Controller
@@ -7,5 +7,10 @@ namespace ExpenseTrackerV2.WebApi.Controller
     [ApiController]
     public class AddressController : ControllerBase
     {
+        public readonly IAddressAppService _addressAppService;
+        public AddressController(IAddressAppService addressAppService)
+        {
+            _addressAppService = addressAppService;
+        }
     }
 }

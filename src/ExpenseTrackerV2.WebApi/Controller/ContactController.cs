@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+using ExpenseTrackerV2.Core.Domain.Service;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExpenseTrackerV2.WebApi.Controller
@@ -7,5 +7,10 @@ namespace ExpenseTrackerV2.WebApi.Controller
     [ApiController]
     public class ContactController : ControllerBase
     {
+        private readonly IContactAppService _contactAppService;
+        public ContactController(IContactAppService contactappService) 
+        {
+            _contactAppService = contactappService;
+        }
     }
 }
