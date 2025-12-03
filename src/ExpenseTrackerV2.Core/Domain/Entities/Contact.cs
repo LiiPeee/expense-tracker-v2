@@ -10,7 +10,7 @@ public class Contact : BaseEntity
     public string? Phone { get; set; }
     public string? Document { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public Address Address { get; set; } = null!;
+    public List<Address> Address { get; set; }
     public long? AddressId { get; set; }
     public TypeContact Type { get; set; } = TypeContact.Personal;
     public bool IsActive { get; set; } = true;

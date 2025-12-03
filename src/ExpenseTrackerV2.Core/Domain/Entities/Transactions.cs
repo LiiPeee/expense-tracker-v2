@@ -8,8 +8,6 @@ namespace ExpenseTrackerV2.Core.Domain.Entities;
 public class Transactions : BaseEntity
 {
     public decimal Amount { get; set; }
-
-    [Required]
     public string Description { get; set; } = null!;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public Category Category { get; set; } = null!;
@@ -17,7 +15,7 @@ public class Transactions : BaseEntity
     public TypeTransaction TypeTransaction { get; set; } = TypeTransaction.Expense;
     public bool Paid { get; set; }
     public int? NumberOfInstallment { get; set; }
-    public DateTime? DateOfInstallment { get; set; }
+    public DateOnly? DateOfInstallment { get; set; }
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public Recurrence Recurrence { get; set; } = Recurrence.None;
     public Contact Contact { get; set; } = null!;
@@ -26,5 +24,4 @@ public class Transactions : BaseEntity
     public long AccountId { get; set; }
     [JsonIgnore]
     public Account Account { get; set; } = null!;
-
 }

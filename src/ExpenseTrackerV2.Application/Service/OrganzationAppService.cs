@@ -28,6 +28,5 @@ public class OrganzationAppService : IOrganizationAppService
             throw new Exception("Failed to create organization");
         }
         return result;
-
     }
 }

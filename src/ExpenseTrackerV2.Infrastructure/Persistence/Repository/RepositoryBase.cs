@@ -31,13 +31,22 @@ public class RepositoryBase<T> : IRepositoryBase<T> where T : class
 
         var query = $"INSERT INTO {_tableName} ({columns}) VALUES ({values}); SELECT CAST(SCOPE_IDENTITY() as int)";
 
-        using (var connection = _context.CreateConnection())
+        if (_context.CurrentConnection != null)
         {
-            var id = await connection.ExecuteScalarAsync<int>(query, entity);
-
+            var conn = _context.CurrentConnection;
+            var id = await conn.ExecuteScalarAsync<int>(query, entity, _context.CurrentTransaction);
             var selectQuery = $"SELECT * FROM {_tableName} WHERE Id = @Id";
-            return await connection.QueryFirstOrDefaultAsync<T>(selectQuery, new { Id = id });
-
+            return await conn.QueryFirstOrDefaultAsync<T>(selectQuery, new { Id = id }, _context.CurrentTransaction);
+        }
+        else
+        {
+            using (var connection = _context.CreateConnection())
+            {
+                connection.Open();
+                var id = await connection.ExecuteScalarAsync<int>(query, entity);
+                var selectQuery = $"SELECT * FROM {_tableName} WHERE Id = @Id";
+                return await connection.QueryFirstOrDefaultAsync<T>(selectQuery, new { Id = id });
+            }
         }
     }
 
@@ -45,25 +54,34 @@ public class RepositoryBase<T> : IRepositoryBase<T> where T : class
     {
         var query = $"SELECT * FROM {_tableName}";
 
-        using (var connection = _context.CreateConnection())
+        if (_context.CurrentConnection != null)
         {
-            connection.Open();
-
-            var result = await connection.QueryAsync<T>(query);
+            var conn = _context.CurrentConnection;
+            var result = await conn.QueryAsync<T>(query, transaction: _context.CurrentTransaction);
             return result.ToList();
         }
-
+        else
+        {
+            using (var connection = _context.CreateConnection())
+            {
+                connection.Open();
+                var result = await connection.QueryAsync<T>(query);
+                return result.ToList();
+            }
+        }
     }
 
     public async Task<T?> GetByIdAsync(long id)
     {
         var query = $"SELECT * FROM {_tableName} WHERE id = @Id";
 
-        using (var connection = _context.CreateConnection())
+        if (_context.CurrentConnection != null)
         {
-            var result = await connection.QuerySingleOrDefaultAsync<T>(query, new { Id = id });
-
-            return result;
+            return await _context.CurrentConnection.QuerySingleOrDefaultAsync<T>(query, new { Id = id }, _context.CurrentTransaction);
+        }
+        else
+        {
+            throw new Exception("connection lost");
         }
     }
     public async Task<bool> UpdateAsync(T entity)
@@ -73,26 +91,30 @@ public class RepositoryBase<T> : IRepositoryBase<T> where T : class
 
         var query = $"UPDATE {_tableName} SET {string.Join(", ", setClause)} WHERE id = @Id";
 
-        using (var connection = _context.CreateConnection())
+        if (_context.CurrentConnection != null)
         {
-
-            var result = await connection.ExecuteAsync(query, entity);
-
+            var result = await _context.CurrentConnection.ExecuteAsync(query, entity, _context.CurrentTransaction);
             return result > 0;
         }
+        else
+        {
+            throw new Exception("connection lost");
+        }
+        
     }
 
     public async Task<bool> DeleteAsync(long id)
     {
         var query = $"DELETE FROM {_tableName} WHERE id = @Id";
 
-        using (var connection = _context.CreateConnection())
+        if (_context.CurrentConnection != null)
         {
-            connection.Open();
-
-            var result = await connection.ExecuteAsync(query, new { Id = id });
-
+            var result = await _context.CurrentConnection.ExecuteAsync(query, new { Id = id }, _context.CurrentTransaction);
             return result > 0;
+        }
+        else
+        {
+            throw new Exception("connection lost");
         }
     }
 

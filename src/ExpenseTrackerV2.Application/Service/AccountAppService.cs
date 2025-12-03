@@ -18,7 +18,7 @@ public class AccountAppService : IAccountAppService
 
     public async Task CreateAsync(AccountRequest request)
     {
-        var organization = await _organizationRepository.GetByIdAsync(request.OrganizationId) ?? throw new ArgumentException("We didnt find this organization");
+        var organization = await _organizationRepository.GetByIdAsync(1) ?? throw new ArgumentException("We didnt find this organization");
 
         var account = new Account
         {
