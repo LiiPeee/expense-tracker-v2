@@ -9,8 +9,8 @@ var appSettings = builder.Configuration.SetBasePath(Directory.GetCurrentDirector
     .AddEnvironmentVariables()
     .Build();
 
-builder.Services.ConfigureApplicationServicesWebApi();
-builder.Services.AddInfrastructureWebApi();
+builder.Services.ConfigureApplicationServicesWebApi(builder.Configuration);
+builder.Services.AddInfrastructureWebApi(builder.Configuration);
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 
@@ -35,4 +35,3 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
-

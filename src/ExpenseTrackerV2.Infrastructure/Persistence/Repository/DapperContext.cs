@@ -14,7 +14,7 @@ public class DapperContext
 
     public DapperContext(IConfiguration configuration)
     {
-        _connectionString = configuration.GetConnectionString("ConnectionStrings__DefaultConnection");
+        _connectionString = configuration.GetConnectionString("ExpenseTrackerV2");
     }
 
     public IDbConnection CreateConnection()

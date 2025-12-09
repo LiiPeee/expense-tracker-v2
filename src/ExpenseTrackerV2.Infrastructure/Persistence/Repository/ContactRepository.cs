@@ -11,10 +11,14 @@ public class ContactRepository : RepositoryBase<Contact>, IContactRepository
     {
     }
 
-    public async Task<long Id> GetByNameAsync(string name)
+    public async Task<long> GetByNameAsync(string name)
     {
-        var query = "SELECT cc.Id FROM Contact Where Name = @Name SELECT Contact.Id";
+        var query = "SELECT CC.Id FROM Contact CC Where Name = @Name SELECT Contact.Id";
         if(_context.CurrentConnection is not null)
-            return _context.CurrentConnection.QuerySingleOrDefaultAsync<Contact>()
+            return await _context.CurrentConnection.QuerySingleOrDefaultAsync<long> (query, new { Name = name }, _context.CurrentTransaction);
+        else
+        {
+            throw new Exception("lost connection");
+        }
     }
 }

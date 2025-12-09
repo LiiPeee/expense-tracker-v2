@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ExpenseTrackerV2.Core\ExpenseTrackerV2.Core.csproj" />
+    <ProjectReference Include="..\ExpenseTrackerV2.Infrastructure\ExpenseTrackerV2.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

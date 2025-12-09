@@ -1,5 +1,5 @@
-using System;
-using ExpenseTrackerV2.Core.Domain.Enums;
+
+using ExpenseTrackerV2.Core.Domain.Enum;
 
 namespace ExpenseTrackerV2.Core.Domain.Entities;
 
@@ -10,9 +10,11 @@ public class Contact : BaseEntity
     public string? Phone { get; set; }
     public string? Document { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public List<Address> Address { get; set; }
-    public long? AddressId { get; set; }
-    public TypeContact Type { get; set; } = TypeContact.Personal;
     public bool IsActive { get; set; } = true;
-    public List<Transactions> Transaction { get; set; } = new();
+    public Account Account { get; set; }
+    public long AccountId { get; set; }
+    public long TypeContactId { get; set; }
+    public TypeContact TypeContact { get; set; }
+    public List<Transactions>? Transaction { get; set; }
+    public List<Address>? Address { get; set; }
 }

@@ -67,3 +67,15 @@ wwwroot/
 project.lock.json
 project.fragment.lock.json
 artifacts/
+# Arquivo sensível
+.env
+
+# Docker
+docker-compose.override.yml
+
+# Logs
+*.log
+
+# Temporários
+*.tmp
+*.bak

@@ -19,14 +19,11 @@ public class AddressAppService: IAddressAppService
 
     public async Task CreateAsync(AddressRequest addressRequest)
     {
-        Contact contact = await _contactRepository.GetByNameAsync(addressRequest.ContactName);
-
         Address address = new Address()
         {
             CreatedAt = DateTime.UtcNow,
             City = addressRequest.City,
             Country = addressRequest.Country,
-            Contact = contact,
             IsPrimary = addressRequest.IsPrimary,
             State = addressRequest.State,
             Street = addressRequest.Street,

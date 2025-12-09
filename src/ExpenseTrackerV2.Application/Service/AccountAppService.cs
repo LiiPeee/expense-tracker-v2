@@ -32,6 +32,4 @@ public class AccountAppService : IAccountAppService
 
         await _accountRepository.AddAsync(account);
     }
-
-
 }

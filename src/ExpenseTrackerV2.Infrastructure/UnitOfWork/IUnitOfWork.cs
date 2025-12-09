@@ -14,7 +14,7 @@ public interface IUnitOfWork
     AddressRepository AddressRepository { get; }
     ContactRepository ContactRepository { get; }
     AccountRepository AccountRepository { get; }
-    TransactionRepository TransactionRepository { get; }
+    TransactionsRepository TransactionRepository { get; }
     OrganizationRepository OrganizationRepository { get; }
 
 

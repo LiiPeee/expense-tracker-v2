@@ -13,7 +13,7 @@ namespace ExpenseTrackerV2.Infrastructure.Persistence.Repository
         private AddressRepository? _addressRepository;
         private ContactRepository? _contactRepository;
         private AccountRepository? _accountRepository;
-        private TransactionRepository? _transactionRepository;
+        private TransactionsRepository? _transactionRepository;
         private OrganizationRepository? _organizationRepository;
         private readonly DapperContext _context;
         
@@ -25,7 +25,7 @@ namespace ExpenseTrackerV2.Infrastructure.Persistence.Repository
         public AddressRepository AddressRepository => _addressRepository ??= new AddressRepository(_context);
         public ContactRepository ContactRepository => _contactRepository ??= new ContactRepository(_context);
         public AccountRepository AccountRepository => _accountRepository ??= new AccountRepository(_context);
-        public TransactionRepository TransactionRepository => _transactionRepository ??= new TransactionRepository();
+        public TransactionsRepository TransactionRepository => _transactionRepository ??= new TransactionsRepository(_context);
         public OrganizationRepository OrganizationRepository => _organizationRepository ??= new OrganizationRepository(_context);
 
         public RepositoryBase<T> GetRepository<T>() where T : class, IBaseEntity

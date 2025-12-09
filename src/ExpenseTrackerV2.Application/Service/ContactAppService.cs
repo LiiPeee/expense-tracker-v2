@@ -23,9 +23,7 @@ public class ContactAppService : IContactAppService
             Email = request.Email,
             IsActive = true,
             Name = request.Name,
-            Phone = request.Phone,
-            Type = request.TypeContact,
-            
+            Phone = request.Phone,            
         };
         await _contactRepository.AddAsync(contact);
     }

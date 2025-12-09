@@ -1,6 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
-using ExpenseTrackerV2.Core.Domain.Enums;
+using ExpenseTrackerV2.Core.Domain.Enum;
 
 namespace ExpenseTrackerV2.Application.Dtos.Request;
 
