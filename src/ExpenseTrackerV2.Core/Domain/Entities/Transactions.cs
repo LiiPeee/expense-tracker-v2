@@ -1,5 +1,8 @@
 
 
+using ExpenseTrackerV2.Core.Domain.Enum;
+using System.Text.Json.Serialization;
+
 namespace ExpenseTrackerV2.Core.Domain.Entities;
 
 public class Transactions : BaseEntity
@@ -8,8 +11,9 @@ public class Transactions : BaseEntity
     public required string Name { get; set; }
     public string Description { get; set; } = null!;
     public bool Paid { get; set; }
-    public int? NumberOfInstallment { get; set; }
-    public DateOnly? DateOfInstallment { get; set; }
+    public long? NumberOfInstallment { get; set; }
+    public DateTime? DateOfInstallment { get; set; }
+    public string? QuantityInstallment { get; set; }
     public long RecurrenceId { get; set; }
     public Contact Contact { get; set; } = null!;
     public long? ContactId { get; set; }

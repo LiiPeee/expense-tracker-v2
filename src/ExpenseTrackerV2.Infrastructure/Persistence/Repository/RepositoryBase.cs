@@ -9,9 +9,9 @@ namespace ExpenseTrackerV2.Infrastructure.Persistence.Repository;
 
 public class RepositoryBase<T> : IRepositoryBase<T> where T : class
 {
-    protected readonly DapperContext _context;
+    protected readonly DbSession _context;
     protected readonly string _tableName;
-    public RepositoryBase(DapperContext context)
+    public RepositoryBase(Unit context)
     {
         _context = context;
         _tableName = GetTableName();
@@ -50,6 +50,7 @@ public class RepositoryBase<T> : IRepositoryBase<T> where T : class
         }
     }
 
+    [Obsolete]
     public async Task<IEnumerable<T>> GetAllAsync()
     {
         var query = $"SELECT * FROM {_tableName}";

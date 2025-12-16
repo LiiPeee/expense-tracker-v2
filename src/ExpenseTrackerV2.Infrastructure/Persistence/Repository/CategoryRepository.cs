@@ -1,15 +1,12 @@
 using Dapper;
 using ExpenseTrackerV2.Core.Domain.Entities;
 using ExpenseTrackerV2.Core.Domain.Repository;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Identity.Client;
-using System;
 
 namespace ExpenseTrackerV2.Infrastructure.Persistence.Repository;
 
 public class CategoryRepository : RepositoryBase<Category>, ICategoryRepository
 {
-    public CategoryRepository(DapperContext context) : base(context)
+    public CategoryRepository(DbSession context) : base(context)
     {
     }
 
@@ -19,7 +16,7 @@ public class CategoryRepository : RepositoryBase<Category>, ICategoryRepository
 
         if (_context.CurrentConnection != null)
         {
-          return await _context.CurrentConnection.QuerySingleOrDefaultAsync<Category>(query, new { Name = name}, _context.CurrentTransaction);
+            return await _context.CurrentConnection.QuerySingleOrDefaultAsync<Category?>(query, new { Name = name }, _context.CurrentTransaction);
         }
         else
         {

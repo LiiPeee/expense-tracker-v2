@@ -28,5 +28,4 @@ public class CategoryAppService: ICategoryAppService
         };
         await _categoryRepository.AddAsync(category);
     }
-
 }

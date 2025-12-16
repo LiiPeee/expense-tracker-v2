@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace ExpenseTrackerV2.Core.Domain.Enum
 {
-    public enum TypeTransaction
+    public enum TypeTransactions
     {
-        EXPENSE,
-        INCOME
+        EXPENSE = 1,
+        INCOME = 2
     }
 }

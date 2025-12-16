@@ -4,5 +4,5 @@ namespace ExpenseTrackerV2.Core.Domain.Repository;
 
 public interface IContactRepository : IRepositoryBase<Contact>
 {
-    Task<long> GetByNameAsync(string name);
+    Task<Contact?> GetByNameAsync(string name);
 }

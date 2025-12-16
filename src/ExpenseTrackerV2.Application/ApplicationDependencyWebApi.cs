@@ -12,6 +12,7 @@ public static class ApplicationDependencyWebApi
         return services
         .AddScoped<IOrganizationAppService, OrganzationAppService>()
         .AddScoped<IAccountAppService,AccountAppService>()
+        .AddScoped<IContactAppService,ContactAppService>()
         .AddScoped<ITransactionsAppService, TransactionsAppService>();
 
     }

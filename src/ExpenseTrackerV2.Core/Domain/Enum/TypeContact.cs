@@ -8,7 +8,7 @@ namespace ExpenseTrackerV2.Core.Domain.Enum
 {
     public enum TypeContact
     {
-        PERSONAL,
-        BUSSINES
+        PERSONAL = 1,
+        BUSINESS = 2
     }
 }

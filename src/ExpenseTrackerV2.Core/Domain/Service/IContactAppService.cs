@@ -1,4 +1,5 @@
 ﻿using ExpenseTrackerV2.Application.Dtos.Request;
+using ExpenseTrackerV2.Core.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,6 @@ namespace ExpenseTrackerV2.Core.Domain.Service
 {
     public interface IContactAppService
     {
-        Task CreateAsync(ContactRequest request);
+        Task<Contact?> CreateAsync(ContactRequest request);
     }
 }

@@ -5,7 +5,7 @@ namespace ExpenseTrackerV2.Infrastructure.Persistence.Repository;
 
 public class OrganizationRepository : RepositoryBase<Organization>, IOrganizationRepository
 {
-    public OrganizationRepository(DapperContext context) : base(context)
+    public OrganizationRepository(DbSession context) : base(context)
     {
     }
 }

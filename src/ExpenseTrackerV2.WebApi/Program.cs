@@ -1,6 +1,6 @@
 using ExpenseTrackerV2.Application;
 using ExpenseTrackerV2.Infrastructure;
-
+using DotNetEnv;
 
 var builder = WebApplication.CreateBuilder(args);
 var appSettings = builder.Configuration.SetBasePath(Directory.GetCurrentDirectory())
@@ -16,7 +16,7 @@ builder.Services.AddInfrastructureWebApi(builder.Configuration);
 
 
 // Configure the HTTP request pipeline.
-
+Env.Load();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

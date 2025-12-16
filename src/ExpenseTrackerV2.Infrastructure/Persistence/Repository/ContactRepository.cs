@@ -7,15 +7,16 @@ namespace ExpenseTrackerV2.Infrastructure.Persistence.Repository;
 
 public class ContactRepository : RepositoryBase<Contact>, IContactRepository
 {
-    public ContactRepository(DapperContext context) : base(context)
+    public ContactRepository(DbSession context) : base(context)
     {
     }
 
-    public async Task<long> GetByNameAsync(string name)
+    public async Task<Contact?> GetByNameAsync(string name)
     {
-        var query = "SELECT CC.Id FROM Contact CC Where Name = @Name SELECT Contact.Id";
+        var query = "SELECT * FROM Contact CC Where Name = @Name";
+
         if(_context.CurrentConnection is not null)
-            return await _context.CurrentConnection.QuerySingleOrDefaultAsync<long> (query, new { Name = name }, _context.CurrentTransaction);
+            return await _context.CurrentConnection.QuerySingleOrDefaultAsync<Contact> (query, new { Name = name }, _context.CurrentTransaction);
         else
         {
             throw new Exception("lost connection");

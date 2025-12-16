@@ -2,9 +2,9 @@
 {
     public enum Recurrence
     {
-        Never,
-        Daily,
-        BiWeekly,
-        Monthly
+        NONE = 1,
+        DAILY = 2,
+        BIWEEKLY = 3,
+        MONTHLY = 4
     }
 }
