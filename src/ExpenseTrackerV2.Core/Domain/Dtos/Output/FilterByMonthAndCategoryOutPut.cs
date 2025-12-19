@@ -6,13 +6,11 @@ using System.Threading.Tasks;
 
 namespace ExpenseTrackerV2.Core.Domain.Dtos.Output
 {
-    public class FilterByMonthAndCategory
+    public class FilterByMonthAndCategoryOutPut
     {
         public decimal Amount { get; set; }
         public string Description { get; set; }
         public bool Paid { get; set; }
         public string Name { get; set; }
-        public string ContactName { get; set; }
-
     }
 }

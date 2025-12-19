@@ -1,58 +1,60 @@
-﻿using ExpenseTrackerV2.Core.Domain.UnitOfWork;
+﻿using ExpenseTrackerV2.Core.Domain.Repository;
+using ExpenseTrackerV2.Core.Domain.UnitOfWork;
+using ExpenseTrackerV2.Core.Infrastructure.Repository;
+using Microsoft.Data.SqlClient;
 using System.Data;
 
 namespace ExpenseTrackerV2.Infrastructure.Persistence.Repository
 {
     public class UnitOfWork : IUnitOfWork
     {
-        public IDbTransaction transaction;
+        private readonly DbSession _session;
 
-        public UnitOfWork(IDbConnection connection)
+        public UnitOfWork(DbSession session)
         {
-            transaction = connection.BeginTransaction();
+            _session = session;
         }
 
-        public IDbTransaction Transaction => transaction;
+        public void BeginTransaction()
+        {
+            _session._transaction = _session._connection.BeginTransaction();
+        }
 
         public void Commit()
         {
             try
             {
-                transaction.Commit();
-                transaction.Connection.Close();
+                _session._transaction.Commit();
+                _session._transaction.Connection.Close();
             }
             catch (Exception)
             {
-                transaction.Rollback();
+                _session._transaction.Rollback();
+                _session._transaction.Dispose();
 
                 throw;
             }
             finally
             {
-                transaction?.Dispose();
-                transaction.Connection?.Dispose();
-                transaction = null;
+                _session._transaction?.Dispose();
             }
-
         }
-
+      
         public void Rollback()
         {
             try
             {
-                transaction.Rollback();
-                transaction.Connection?.Close();
+                _session._transaction.Rollback();
             }
-            catch
-            {
-                throw;
-            }
+          
             finally
             {
-                transaction?.Dispose();
-                transaction.Connection?.Dispose();
-                transaction = null;
+                _session._transaction?.Dispose();
             }
+        }
+        public void Dispose()
+        {
+            _session.Dispose();
         }
     }
 }

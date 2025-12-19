@@ -9,11 +9,13 @@ namespace ExpenseTrackerV2.Infrastructure.Persistence.Repository;
 
 public class RepositoryBase<T> : IRepositoryBase<T> where T : class
 {
-    protected readonly DbSession _context;
+    protected readonly DbSession _db
+        ;
+
     protected readonly string _tableName;
-    public RepositoryBase(Unit context)
+    public RepositoryBase(DbSession session)
     {
-        _context = context;
+        _db = session;
         _tableName = GetTableName();
     }
     private string GetTableName()
@@ -31,54 +33,47 @@ public class RepositoryBase<T> : IRepositoryBase<T> where T : class
 
         var query = $"INSERT INTO {_tableName} ({columns}) VALUES ({values}); SELECT CAST(SCOPE_IDENTITY() as int)";
 
-        if (_context.CurrentConnection != null)
+        if (_db._connection.State == ConnectionState.Open)
         {
-            var conn = _context.CurrentConnection;
-            var id = await conn.ExecuteScalarAsync<int>(query, entity, _context.CurrentTransaction);
+            var id = await _db._connection.ExecuteScalarAsync<int>(query, entity, _db._transaction);
             var selectQuery = $"SELECT * FROM {_tableName} WHERE Id = @Id";
-            return await conn.QueryFirstOrDefaultAsync<T>(selectQuery, new { Id = id }, _context.CurrentTransaction);
+            return await _db._connection.QueryFirstOrDefaultAsync<T>(selectQuery, new { Id = id }, _db._transaction);
         }
         else
         {
-            using (var connection = _context.CreateConnection())
-            {
-                connection.Open();
-                var id = await connection.ExecuteScalarAsync<int>(query, entity);
+                _db._connection.Open();
+                var id = await _db._connection.ExecuteScalarAsync<int>(query, entity);
                 var selectQuery = $"SELECT * FROM {_tableName} WHERE Id = @Id";
-                return await connection.QueryFirstOrDefaultAsync<T>(selectQuery, new { Id = id });
-            }
+                return await _db._connection.QueryFirstOrDefaultAsync<T>(selectQuery, new { Id = id });
         }
     }
 
-    [Obsolete]
     public async Task<IEnumerable<T>> GetAllAsync()
     {
         var query = $"SELECT * FROM {_tableName}";
 
-        if (_context.CurrentConnection != null)
+        if (_db._connection.State == ConnectionState.Open)
         {
-            var conn = _context.CurrentConnection;
-            var result = await conn.QueryAsync<T>(query, transaction: _context.CurrentTransaction);
+         
+            var result = await _db._connection.QueryAsync<T>(query, transaction: _db._transaction);
             return result.ToList();
         }
         else
         {
-            using (var connection = _context.CreateConnection())
-            {
-                connection.Open();
-                var result = await connection.QueryAsync<T>(query);
-                return result.ToList();
-            }
+            _db._connection.Open();
+            var result = await _db._connection.QueryAsync<T>(query);
+            return result.ToList();
         }
+        
     }
 
     public async Task<T?> GetByIdAsync(long id)
     {
         var query = $"SELECT * FROM {_tableName} WHERE id = @Id";
 
-        if (_context.CurrentConnection != null)
+        if (_db._connection.State == ConnectionState.Open)
         {
-            return await _context.CurrentConnection.QuerySingleOrDefaultAsync<T>(query, new { Id = id }, _context.CurrentTransaction);
+            return await _db._connection.QuerySingleOrDefaultAsync<T>(query, new { Id = id }, _db._transaction);
         }
         else
         {
@@ -92,9 +87,9 @@ public class RepositoryBase<T> : IRepositoryBase<T> where T : class
 
         var query = $"UPDATE {_tableName} SET {string.Join(", ", setClause)} WHERE id = @Id";
 
-        if (_context.CurrentConnection != null)
+        if (_db._connection.State == ConnectionState.Open)
         {
-            var result = await _context.CurrentConnection.ExecuteAsync(query, entity, _context.CurrentTransaction);
+            var result = await _db._connection.ExecuteAsync(query, entity, _db._transaction);
             return result > 0;
         }
         else
@@ -108,9 +103,9 @@ public class RepositoryBase<T> : IRepositoryBase<T> where T : class
     {
         var query = $"DELETE FROM {_tableName} WHERE id = @Id";
 
-        if (_context.CurrentConnection != null)
+        if (_db._connection.State == ConnectionState.Open)
         {
-            var result = await _context.CurrentConnection.ExecuteAsync(query, new { Id = id }, _context.CurrentTransaction);
+            var result = await _db._connection.ExecuteAsync(query, new { Id = id }, _db._transaction);
             return result > 0;
         }
         else

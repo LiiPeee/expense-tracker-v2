@@ -1,74 +1,47 @@
-using System.Data;
-using System.Data.Common;
-using System.Data.SqlClient;
-using ExpenseTrackerV2.Core.Domain.Repository;
-using ExpenseTrackerV2.Core.Infrastructure.Repository;
-using ExpenseTrackerV2.Core.Infrastructure.UnitOfWork;
-using ExpenseTrackerV2.Infrastructure.UnitOfWork;
+﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 
-namespace ExpenseTrackerV2.Infrastructure.Persistence.Repository;
+using System.Data;
 
-public class DbSession : IDbsession
+
+namespace ExpenseTrackerV2.Infrastructure.Persistence.Repository
 {
-    private IUnitOfWorkFactory _unitOfWorkFactory;
-
-    private UnitOfWork _unitOfWork;
-
-    private ITransactionsRepository _transactionsRepository;
-
-    private IOrganizationRepository _organizationRepository;
-
-    private IAddressRepository _addressRepository;
-
-    private IAccountRepository _accountRepository;
-
-    private ICategoryRepository _categoryRepository;
-
-    private ISubCategoryRepository _subCategoryRepository;
-
-
-
-    public DbSession(IUnitOfWorkFactory unitOfWorkFactory)
+    public class DbSession : IDisposable
     {
-        this._unitOfWorkFactory = unitOfWorkFactory;
-    }
+        public IDbConnection _connection { get; }
+        public IDbTransaction _transaction { get; set; }
 
-    public TransactionsRepository Transactions =>
-        _transactionsRepository ?? (_transactionsRepository = new TransactionsRepository(UnitOfWork));
+        public string _connectrionString { get; set; }
 
-    proctected UnitOfWork UnitOfWork =>
-        _unitOfWork ?? (_unitOfWork = _unitOfWorkFactory.Create());
+        private bool _disposed;
 
-   
-
-    public void CommitTransaction()
-    {
-        try
+        public DbSession(IConfiguration configuration)
         {
-            UnitOfWork.CommitTransaction();
+            _connectrionString = configuration.GetConnectionString("ExpenseTrackerV2");
+            _connection =  new SqlConnection(_connectrionString);
+            _connection.Open();
         }
-        finally
-        {
-            Reset();
-        }
-    }
 
-    public void RollbackTransaction()
-    {
-        try
+        public void Dispose()
         {
-            UnitOfWork?.Rollback();
+          _transaction?.Dispose();
+           if (_connection.State == ConnectionState.Open)
+            {
+                _connection.Close();
+            }
         }
-        finally
-        {
-            Reset();
-        }
-    }
 
-    private void Reset()
-    {
-        _unitOfWork = null;
-        _transactionsRepository = null;
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    _transaction?.Dispose();
+                    _connection.Dispose();
+                }
+                _disposed = true;
+            }
+        }
     }
 }

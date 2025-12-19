@@ -12,7 +12,7 @@ public static class InfrastructureDependencyWebApi
     public static IServiceCollection AddInfrastructureWebApi(this IServiceCollection services, IConfiguration configuration)
     {
         return services
-        .AddSingleton<DbSession>()
+        .AddScoped<DbSession>()
         .AddScoped<IOrganizationRepository, OrganizationRepository>()
         .AddScoped<IAccountRepository, AccountRepository>()
         .AddScoped<ITransactionsRepository, TransactionsRepository>()
@@ -20,6 +20,6 @@ public static class InfrastructureDependencyWebApi
         .AddScoped<IAddressRepository, AddressRepository>()
         .AddScoped<IContactRepository, ContactRepository>()
         .AddScoped<ISubCategoryRepository, SubCategoryRepository>()
-        .AddScoped<IUnitOfWork, UnitOfWorkFactory>();
+        .AddScoped<IUnitOfWork, UnitOfWork>();
     }
 }

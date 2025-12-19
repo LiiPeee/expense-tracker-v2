@@ -8,7 +8,8 @@ namespace ExpenseTrackerV2.Core.Domain.Service;
 public interface ITransactionsAppService
 {
     Task<List<Transactions>> CreateAsync(CreateTrasactionRequest transactionRequest);
-    Task<List<FilterByMonthAndCategory>> FilterTransactionsByCategoryAsync(long categoryId, long month);
     Task PaidAsync(PaidTransactionRequest paidTransactionRequest);
-    Task<List<FilterByMonthAndCategory>> FilterByMonthAsync(long month);
+    Task<List<FilterByMonthOutPut>> FilterByMonthAndYearsync(long month, long year);
+    Task<List<FilterByMonthAndCategoryOutPut>> FilterTransactionsByCategoryAsync(long categoryId, long month);
+    Task<List<FilterByContactAndMonthOutPut>> FilterByContactAndMonth(long month, long contactId);
 }

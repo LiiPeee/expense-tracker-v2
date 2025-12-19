@@ -38,7 +38,7 @@ public class TransactionsAppService : ITransactionsAppService
     {
         try
         {
-            await _unitOfWork.BeginTransactionAsync();
+             _unitOfWork.BeginTransaction();
 
             var contact = await _contactRepository.GetByNameAsync(transactionRequest.ContactName);
 
@@ -78,7 +78,7 @@ public class TransactionsAppService : ITransactionsAppService
 
             var savedTransaction = await _transactionRepository.AddAsync(transaction);
 
-            await _unitOfWork.CommitAsync();
+             _unitOfWork.Commit();
 
             List<Transactions> transactions = new List<Transactions>()
             {
@@ -89,7 +89,7 @@ public class TransactionsAppService : ITransactionsAppService
         }
         catch (Exception ex)
         {
-            await _unitOfWork.RollbackAsync();
+            _unitOfWork.Rollback();
             throw ex;
         }
     }
@@ -98,7 +98,7 @@ public class TransactionsAppService : ITransactionsAppService
     {
         try
         {
-            await _unitOfWork.BeginTransactionAsync();
+             _unitOfWork.BeginTransaction();
 
             var transaction = await _transactionRepository.GetByIdAsync(paidTransactionRequest.TransactionId);
 
@@ -122,36 +122,35 @@ public class TransactionsAppService : ITransactionsAppService
 
                     var updatedAccount = await _accountRepository.UpdateAsync(account);
 
-                    await _unitOfWork.CommitAsync(); 
+                     _unitOfWork.Commit(); 
                 }
             }
         }
         catch (Exception ex) 
         {
-            await _unitOfWork.RollbackAsync();
+            _unitOfWork.Rollback();
             throw ex;
         }
     }
 
-    public async Task<List<FilterByMonthAndCategory>> FilterTransactionsByCategoryAsync(long categoryId, long month)
+    public async Task<List<FilterByMonthAndCategoryOutPut>> FilterTransactionsByCategoryAsync(long categoryId, long month)
     {
         try
         {
-            await _unitOfWork.BeginTransactionAsync();
+             _unitOfWork.BeginTransaction();
 
             var transaction = await _transactionRepository.FilterTransactionsByCategoryAsync(categoryId, month);
 
-            var category = new List<FilterByMonthAndCategory>();
+            var category = new List<FilterByMonthAndCategoryOutPut>();
 
             foreach (var t in transaction)
             {
-                var filter = new FilterByMonthAndCategory()
+                var filter = new FilterByMonthAndCategoryOutPut()
                 {
                     Paid = t.Paid,
                     Name = t.Name,
                     Description = t.Description,
                     Amount = t.Amount,
-                    ContactName = t.Contact.Name
                 };
 
                category.Add(filter);
@@ -165,23 +164,22 @@ public class TransactionsAppService : ITransactionsAppService
         }
     }
 
-    public async Task<List<FilterByMonthAndCategory>> FilterByMonthAsync(long month)
+    public async Task<List<FilterByMonthOutPut>> FilterByMonthAndYearsync(long month, long year)
     {
         try
         {
-            await _unitOfWork.BeginTransactionAsync();
+             _unitOfWork.BeginTransaction();
 
-            var transaction = await _transactionRepository.FilterByMonthAsync(month);
+            var transaction = await _transactionRepository.FilterByMonthAndYearAsync(month, year);
 
-            var category = new List<FilterByMonthAndCategory>();
+            var category = new List<FilterByMonthOutPut>();
 
             foreach(var t in transaction)
             {
 
-                var filter = new FilterByMonthAndCategory()
+                var filter = new FilterByMonthOutPut()
                 {
                   Amount = t.Amount,
-                  ContactName = t.Contact.Name,
                   Description= t.Description,
                   Name = t.Name,
                   Paid = t.Paid
@@ -196,6 +194,36 @@ public class TransactionsAppService : ITransactionsAppService
         {
             throw ex;
         }
+    }
+
+    public async Task<List<FilterByContactAndMonthOutPut>> FilterByContactAndMonth(long month, long contactId)
+    {
+        _unitOfWork.BeginTransaction();
+
+        var transactions = await _transactionRepository.FilterByMonthAndContact(month, contactId);
+
+        var filter = new List<FilterByContactAndMonthOutPut>();
+
+        foreach(var t in transactions)
+        {
+            var outputFilter = new FilterByContactAndMonthOutPut()
+            {
+                Amount = t.Amount,
+                Description = t.Description,
+                Contact = new ContactOutput
+                {
+                    Email = t.Contact.Email,
+                    Name = t.Contact.Name,
+                    Phone = t.Contact.Phone
+                },
+                Name = t.Name,
+                Paid = t.Paid
+            };
+
+            filter.Add(outputFilter);
+        }
+
+        return filter;
     }
     private async Task<List<Transactions>> CreateInstallemntsAsync(CreateTrasactionRequest request, long category, long contactId, long recurrenceId, long typeTransactionId, long accountId)
     {
@@ -227,7 +255,7 @@ public class TransactionsAppService : ITransactionsAppService
 
                 var savedTransaction = await _transactionRepository.AddAsync(transaction);
 
-                await _unitOfWork.CommitAsync();
+                _unitOfWork.Commit();
 
                 transactions.Add(savedTransaction);
             }
@@ -236,7 +264,7 @@ public class TransactionsAppService : ITransactionsAppService
         }
         catch (Exception ex) 
         {
-            await _unitOfWork.RollbackAsync();
+             _unitOfWork.Rollback();
 
             throw ex;
         }

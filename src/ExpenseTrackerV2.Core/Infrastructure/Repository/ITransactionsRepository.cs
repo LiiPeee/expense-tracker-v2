@@ -7,5 +7,6 @@ namespace ExpenseTrackerV2.Core.Domain.Repository;
 public interface ITransactionsRepository : IRepositoryBase<Transactions>
 {
     Task<List<Transactions>> FilterTransactionsByCategoryAsync(long categoryId, long month);
-    Task<List<Transactions>> FilterByMonthAsync(long month);
+    Task<List<Transactions>> FilterByMonthAndYearAsync(long month, long year);
+    Task<List<Transactions>> FilterByMonthAndContact(long month, long contactId);
 }

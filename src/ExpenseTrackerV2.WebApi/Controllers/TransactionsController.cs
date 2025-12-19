@@ -31,15 +31,21 @@ namespace ExpenseTrackerV2.WebApi.Controller
         }
 
         [HttpGet("[action]")]
-        public async Task<List<FilterByMonthAndCategory>> GetByCategoryAsync([FromQuery] long categoryId, [FromQuery] long month)
+        public async Task<List<FilterByMonthAndCategoryOutPut>> GetByCategoryAsync([FromQuery] long categoryId, [FromQuery] long month)
         {
            return await _transactionAppService.FilterTransactionsByCategoryAsync(categoryId, month);
         }
 
         [HttpGet("[action]")]
-        public async Task<List<FilterByMonthAndCategory>> GetByMonthAsync([FromQuery] long month)
+        public async Task<List<FilterByMonthOutPut>> GetByMonthAndYearAsync([FromQuery] long month, [FromQuery] long year)
         {
-            return await _transactionAppService.FilterByMonthAsync(month);
+            return await _transactionAppService.FilterByMonthAndYearsync(month,year);
+        }
+
+        [HttpGet("[action]")]
+        public async Task<List<FilterByContactAndMonthOutPut>> GetByContactAndMonth([FromQuery] long month, [FromQuery] long contactId)
+        {
+            return await _transactionAppService.FilterByContactAndMonth(month, contactId);
         }
 
     }

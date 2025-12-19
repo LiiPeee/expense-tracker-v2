@@ -1,12 +1,13 @@
 using Dapper;
 using ExpenseTrackerV2.Core.Domain.Entities;
 using ExpenseTrackerV2.Core.Domain.Repository;
+using System.Data;
 
 namespace ExpenseTrackerV2.Infrastructure.Persistence.Repository;
 
 public class CategoryRepository : RepositoryBase<Category>, ICategoryRepository
 {
-    public CategoryRepository(DbSession context) : base(context)
+    public CategoryRepository(DbSession connection) : base(connection)
     {
     }
 
@@ -14,9 +15,9 @@ public class CategoryRepository : RepositoryBase<Category>, ICategoryRepository
     {
         var query = $"SELECT * FROM Category WHERE Name = @Name";
 
-        if (_context.CurrentConnection != null)
+        if (_db._connection.State == ConnectionState.Open)
         {
-            return await _context.CurrentConnection.QuerySingleOrDefaultAsync<Category?>(query, new { Name = name }, _context.CurrentTransaction);
+            return await _db._connection.QuerySingleOrDefaultAsync<Category?>(query, new { Name = name }, transaction: _db._transaction);
         }
         else
         {

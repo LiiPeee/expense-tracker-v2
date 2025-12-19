@@ -4,6 +4,7 @@ using ExpenseTrackerV2.Core.Domain.Repository;
 using ExpenseTrackerV2.Core.Infrastructure.Repository;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,7 +13,7 @@ namespace ExpenseTrackerV2.Infrastructure.Persistence.Repository
 {
     public class SubCategoryRepository : RepositoryBase<SubCategory>, ISubCategoryRepository
     {
-        public SubCategoryRepository(DbSession context) : base(context)
+        public SubCategoryRepository(DbSession connection) : base(connection)
         {
         }
 
@@ -21,9 +22,9 @@ namespace ExpenseTrackerV2.Infrastructure.Persistence.Repository
         {
             var query = $"SELECT * FROM Category WHERE Name = @Name";
 
-            if (_context.CurrentConnection != null)
+            if (_db._connection.State == ConnectionState.Open)
             {
-                return await _context.CurrentConnection.QuerySingleOrDefaultAsync<SubCategory>(query, new { Name = name }, _context.CurrentTransaction);
+                return await _db._connection.QuerySingleOrDefaultAsync<SubCategory>(query, new { Name = name }, transaction: _db._transaction);
             }
             else
             {
