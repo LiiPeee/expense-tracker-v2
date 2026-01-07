@@ -12,6 +12,7 @@ public interface ITransactionsAppService
     Task<List<FilterByMonthOutPut>> FilterByMonthAndYearsync(long month, long year);
     Task<List<FilterByMonthAndCategoryOutPut>> FilterTransactionsByCategoryAsync(long categoryId, long month, long year);
     Task<List<FilterByContactAndMonthOutPut>> FilterByContactAndMonth(long year,long month, long contactId);
-    Task<decimal> FilterExpenseMonthAndYear(long year, long month);
-    Task<decimal> FilterIncomeMonthAndYear(long year, long month);
+    Task<decimal> FilterExpenseMonthAndYearAsync(long year, long month);
+    Task<decimal> FilterIncomeMonthAndYearAsync(long year, long month);
+    Task<List<FilterByContactAndMonthOutPut>> FilterExpenseWithContactAsync(long year, long month);
 }

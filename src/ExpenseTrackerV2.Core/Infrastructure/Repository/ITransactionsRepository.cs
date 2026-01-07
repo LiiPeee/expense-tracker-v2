@@ -8,7 +8,8 @@ public interface ITransactionsRepository : IRepositoryBase<Transactions>
 {
     Task<List<Transactions>> FilterTransactionsByCategoryAsync(long categoryId, long month, long year);
     Task<List<Transactions>> FilterByMonthAndYearAsync(long month, long year);
-    Task<List<Transactions>> FilterByMonthAndContact(long year,long month, long contactId);
-    Task<List<Transactions>> FilterExpenseMonthAndYear(long year, long month);
-    Task<List<Transactions>> FilterIncomeMonthAndYear(long year, long month);
+    Task<List<Transactions>> FilterByMonthAndContactAsync(long year,long month, long contactId);
+    Task<List<Transactions>> FilterExpenseMonthAndYearAsync(long year, long month);
+    Task<List<Transactions>> FilterIncomeMonthAndYearAsync(long year, long month);
+    Task<List<Transactions>> FilterExpenseMonthWithContactAsync(long year, long month);
 }

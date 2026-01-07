@@ -43,21 +43,27 @@ namespace ExpenseTrackerV2.WebApi.Controller
         }
 
         [HttpGet("[action]")]
-        public async Task<List<FilterByContactAndMonthOutPut>> GetByContactAndMonth([FromQuery] long year, [FromQuery] long month, [FromQuery] long contactId)
+        public async Task<List<FilterByContactAndMonthOutPut>> GetByContactAndMonthAsync([FromQuery] long year, [FromQuery] long month, [FromQuery] long contactId)
         {
             return await _transactionAppService.FilterByContactAndMonth(year, month, contactId);
         }
 
         [HttpGet("[action]")]
-        public async Task<decimal> GetExpenseByMonthAndYear([FromQuery] long year, [FromQuery] long month)
+        public async Task<decimal> GetExpenseByMonthAndYearAsync([FromQuery] long year, [FromQuery] long month)
         {
-            return await _transactionAppService.FilterExpenseMonthAndYear(year, month);
+            return await _transactionAppService.FilterExpenseMonthAndYearAsync(year, month);
         }
 
         [HttpGet("[action]")]
-        public async Task<decimal> GetIncomeByMonthAndYear([FromQuery] long year, [FromQuery] long month)
+        public async Task<decimal> GetIncomeByMonthAndYearAsync([FromQuery] long year, [FromQuery] long month)
         {
-            return await _transactionAppService.FilterIncomeMonthAndYear(year, month);
+            return await _transactionAppService.FilterIncomeMonthAndYearAsync(year, month);
+        }
+
+        [HttpGet("[action]")]
+        public async Task<List<FilterByContactAndMonthOutPut>> GetExpenseMonthAsync([FromQuery] long year, [FromQuery] long month)
+        {
+            return await _transactionAppService.FilterExpenseWithContactAsync(year, month);
         }
     }
 }

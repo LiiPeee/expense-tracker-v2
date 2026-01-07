@@ -132,33 +132,81 @@ public class TransactionsAppService : ITransactionsAppService
             throw ex;
         }
     }
-
-    public async Task<decimal> FilterExpenseMonthAndYear(long year, long month)
+    public async Task<List<FilterByContactAndMonthOutPut>> FilterExpenseWithContactAsync(long year, long month)
     {
-        var transactions = await _transactionRepository.FilterExpenseMonthAndYear(year, month);
-
-        decimal totalExpense = 0;
-
-        foreach (var transaction in transactions) 
+        try
         {
-            totalExpense += transaction.Amount;
-        }
+            var transactions = await _transactionRepository.FilterExpenseMonthWithContactAsync(year, month);
+            var filter = new List<FilterByContactAndMonthOutPut>();
 
-        return totalExpense;
+            foreach (var t in transactions)
+            {
+                var outputFilter = new FilterByContactAndMonthOutPut()
+                {
+                    Amount = t.Amount,
+                    Description = t.Description,
+                    Contact = new ContactOutput
+                    {
+                        Email = t.Contact.Email,
+                        Name = t.Contact.Name,
+                        Phone = t.Contact.Phone
+                    },
+                    Name = t.Name,
+                    Paid = t.Paid
+                };
+
+                filter.Add(outputFilter);
+            }
+
+            return filter;
+
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<decimal> FilterExpenseMonthAndYearAsync(long year, long month)
+    {
+        try
+        {
+            var transactions = await _transactionRepository.FilterExpenseMonthAndYearAsync(year, month);
+
+            decimal totalExpense = 0;
+
+            foreach (var transaction in transactions)
+            {
+                totalExpense += transaction.Amount;
+            }
+
+            return totalExpense;
+        }
+        catch (Exception ex) 
+        {
+            throw ex;
+        }
     }
 
-    public async Task<decimal> FilterIncomeMonthAndYear(long year, long month)
+    public async Task<decimal> FilterIncomeMonthAndYearAsync(long year, long month)
     {
-        var transactions = await _transactionRepository.FilterIncomeMonthAndYear(year, month);
-
-        decimal totalIncome = 0;
-
-        foreach (var transaction in transactions)
+        try 
         {
-            totalIncome += transaction.Amount;
-        }
+            var transactions = await _transactionRepository.FilterIncomeMonthAndYearAsync(year, month);
 
-        return totalIncome;
+            decimal totalIncome = 0;
+
+            foreach (var transaction in transactions)
+            {
+                totalIncome += transaction.Amount;
+            }
+
+            return totalIncome;
+
+        } catch (Exception ex) 
+        {
+            throw ex;
+        }
+       
     }
 
     public async Task<List<FilterByMonthAndCategoryOutPut>> FilterTransactionsByCategoryAsync(long categoryId, long month, long year)
@@ -226,32 +274,38 @@ public class TransactionsAppService : ITransactionsAppService
 
     public async Task<List<FilterByContactAndMonthOutPut>> FilterByContactAndMonth(long year, long month, long contactId)
     {
-        _unitOfWork.BeginTransaction();
-
-        var transactions = await _transactionRepository.FilterByMonthAndContact(year, month, contactId);
-
-        var filter = new List<FilterByContactAndMonthOutPut>();
-
-        foreach(var t in transactions)
+        try
         {
-            var outputFilter = new FilterByContactAndMonthOutPut()
+            _unitOfWork.BeginTransaction();
+
+            var transactions = await _transactionRepository.FilterByMonthAndContactAsync(year, month, contactId);
+
+            var filter = new List<FilterByContactAndMonthOutPut>();
+
+            foreach (var t in transactions)
             {
-                Amount = t.Amount,
-                Description = t.Description,
-                Contact = new ContactOutput
+                var outputFilter = new FilterByContactAndMonthOutPut()
                 {
-                    Email = t.Contact.Email,
-                    Name = t.Contact.Name,
-                    Phone = t.Contact.Phone
-                },
-                Name = t.Name,
-                Paid = t.Paid
-            };
+                    Amount = t.Amount,
+                    Description = t.Description,
+                    Contact = new ContactOutput
+                    {
+                        Email = t.Contact.Email,
+                        Name = t.Contact.Name,
+                        Phone = t.Contact.Phone
+                    },
+                    Name = t.Name,
+                    Paid = t.Paid
+                };
 
-            filter.Add(outputFilter);
+                filter.Add(outputFilter);
+            }
+
+            return filter;
+        } catch (Exception ex) 
+        { 
+            throw ex; 
         }
-
-        return filter;
     }
     private async Task<List<Transactions>> CreateInstallemntsAsync(CreateTrasactionRequest request, long category, long contactId, long recurrenceId, long typeTransactionId, long accountId)
     {
@@ -296,7 +350,6 @@ public class TransactionsAppService : ITransactionsAppService
 
             throw ex;
         }
-       
     }
 
     private decimal SumOrSubtractBalance(decimal balance, decimal transactionAmount, long typeTransaction)

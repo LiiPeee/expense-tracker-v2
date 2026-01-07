@@ -51,7 +51,7 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         }
     }
 
-    public async Task<List<Transactions>> FilterByMonthAndContact(long year,long month, long contactId)
+    public async Task<List<Transactions>> FilterByMonthAndContactAsync(long year,long month, long contactId)
     {
         var query = @"SELECT * FROM Transactions t 
         INNER JOIN Contact ctt ON t.ContactId = ctt.Id 
@@ -75,7 +75,7 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         }
     }
 
-    public async Task<List<Transactions>> FilterExpenseMonthAndYear(long year, long month)
+    public async Task<List<Transactions>> FilterExpenseMonthAndYearAsync(long year, long month)
     {
         var query = @"SELECT * FROM Transactions t
         LEFT JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
@@ -96,7 +96,7 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         }
     }
 
-    public async Task<List<Transactions>> FilterIncomeMonthAndYear(long year, long month)
+    public async Task<List<Transactions>> FilterIncomeMonthAndYearAsync(long year, long month)
     {
         var query = @"SELECT * FROM Transactions t
         LEFT JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
@@ -107,6 +107,30 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         if (_db._connection.State == ConnectionState.Open)
         {
             var result = await _db._connection.QueryAsync<Transactions>(query, new { Month = month, Year = year }, _db._transaction);
+
+            return result.ToList();
+        }
+        else
+        {
+            throw new Exception("somenthing wrong ocurr in DB");
+        }
+    }
+    
+    public async Task<List<Transactions>> FilterExpenseMonthWithContactAsync(long year, long month)
+    {
+        var query = @"SELECT * FROM Transactions t 
+        LEFT JOIN Contact ct ON t.ContactId = ct.Id
+        WHERE ((MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year) 
+        OR (MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year))";
+
+        if (_db._connection.State == ConnectionState.Open)
+        {
+            var result = await _db._connection.QueryAsync<Transactions, Contact, Transactions>(query, (t, c) => 
+            {
+                t.Contact = c;
+                return t;
+            },
+            new { Month = month, Year = year }, transaction: _db._transaction, splitOn: "Id");
 
             return result.ToList();
         }
