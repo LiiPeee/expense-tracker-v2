@@ -10,6 +10,8 @@ public interface ITransactionsAppService
     Task<List<Transactions>> CreateAsync(CreateTrasactionRequest transactionRequest);
     Task PaidAsync(PaidTransactionRequest paidTransactionRequest);
     Task<List<FilterByMonthOutPut>> FilterByMonthAndYearsync(long month, long year);
-    Task<List<FilterByMonthAndCategoryOutPut>> FilterTransactionsByCategoryAsync(long categoryId, long month);
-    Task<List<FilterByContactAndMonthOutPut>> FilterByContactAndMonth(long month, long contactId);
+    Task<List<FilterByMonthAndCategoryOutPut>> FilterTransactionsByCategoryAsync(long categoryId, long month, long year);
+    Task<List<FilterByContactAndMonthOutPut>> FilterByContactAndMonth(long year,long month, long contactId);
+    Task<decimal> FilterExpenseMonthAndYear(long year, long month);
+    Task<decimal> FilterIncomeMonthAndYear(long year, long month);
 }

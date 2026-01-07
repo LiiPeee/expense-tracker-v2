@@ -133,13 +133,41 @@ public class TransactionsAppService : ITransactionsAppService
         }
     }
 
-    public async Task<List<FilterByMonthAndCategoryOutPut>> FilterTransactionsByCategoryAsync(long categoryId, long month)
+    public async Task<decimal> FilterExpenseMonthAndYear(long year, long month)
+    {
+        var transactions = await _transactionRepository.FilterExpenseMonthAndYear(year, month);
+
+        decimal totalExpense = 0;
+
+        foreach (var transaction in transactions) 
+        {
+            totalExpense += transaction.Amount;
+        }
+
+        return totalExpense;
+    }
+
+    public async Task<decimal> FilterIncomeMonthAndYear(long year, long month)
+    {
+        var transactions = await _transactionRepository.FilterIncomeMonthAndYear(year, month);
+
+        decimal totalIncome = 0;
+
+        foreach (var transaction in transactions)
+        {
+            totalIncome += transaction.Amount;
+        }
+
+        return totalIncome;
+    }
+
+    public async Task<List<FilterByMonthAndCategoryOutPut>> FilterTransactionsByCategoryAsync(long categoryId, long month, long year)
     {
         try
         {
              _unitOfWork.BeginTransaction();
 
-            var transaction = await _transactionRepository.FilterTransactionsByCategoryAsync(categoryId, month);
+            var transaction = await _transactionRepository.FilterTransactionsByCategoryAsync(categoryId, month, year);
 
             var category = new List<FilterByMonthAndCategoryOutPut>();
 
@@ -196,11 +224,11 @@ public class TransactionsAppService : ITransactionsAppService
         }
     }
 
-    public async Task<List<FilterByContactAndMonthOutPut>> FilterByContactAndMonth(long month, long contactId)
+    public async Task<List<FilterByContactAndMonthOutPut>> FilterByContactAndMonth(long year, long month, long contactId)
     {
         _unitOfWork.BeginTransaction();
 
-        var transactions = await _transactionRepository.FilterByMonthAndContact(month, contactId);
+        var transactions = await _transactionRepository.FilterByMonthAndContact(year, month, contactId);
 
         var filter = new List<FilterByContactAndMonthOutPut>();
 
@@ -277,6 +305,5 @@ public class TransactionsAppService : ITransactionsAppService
         var subtraction = balance - transactionAmount;
 
         return (typeTransaction == 1) ? subtraction : sum;
-    } 
-
+    }
 }

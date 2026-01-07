@@ -25,7 +25,6 @@ namespace ExpenseTrackerV2.Infrastructure.Persistence.Repository
             try
             {
                 _session._transaction.Commit();
-                _session._transaction.Connection.Close();
             }
             catch (Exception)
             {
