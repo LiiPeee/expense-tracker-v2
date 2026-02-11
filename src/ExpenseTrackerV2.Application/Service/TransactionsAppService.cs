@@ -337,10 +337,10 @@ public class TransactionsAppService : ITransactionsAppService
 
                 var savedTransaction = await _transactionRepository.AddAsync(transaction);
 
-                _unitOfWork.Commit();
-
                 transactions.Add(savedTransaction);
             }
+            _unitOfWork.Commit();
+
 
             return transactions;
         }
