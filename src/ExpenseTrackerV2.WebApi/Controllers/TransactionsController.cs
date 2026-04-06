@@ -2,9 +2,7 @@
 using ExpenseTrackerV2.Core.Domain.Dtos.Request.Transaction;
 using ExpenseTrackerV2.Core.Domain.Entities;
 using ExpenseTrackerV2.Core.Domain.Service;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.Transactions;
 
 namespace ExpenseTrackerV2.WebApi.Controller
 {
@@ -25,27 +23,33 @@ namespace ExpenseTrackerV2.WebApi.Controller
         }
 
         [HttpPatch("[action]")]
-        public async Task PaidAsync([FromBody] PaidTransactionRequest paidTransactionRequest)
+        public async Task EditAsync([FromBody] PaidTransactionRequest paidTransactionRequest)
         {
             await _transactionAppService.PaidAsync(paidTransactionRequest);
         }
 
         [HttpGet("[action]")]
-        public async Task<List<FilterByMonthAndCategoryOutPut>> GetByCategoryAsync([FromQuery] long categoryId, [FromQuery] long month, [FromQuery] long year)
+        public async Task<IPagedResult<FilterByMonthAndYearOutPut>> GetByCategoryAsync([FromQuery] string categoryName, [FromQuery] long month, [FromQuery] long year, [FromQuery] string type)
         {
-           return await _transactionAppService.FilterTransactionsByCategoryAsync(categoryId, month, year);
+            return await _transactionAppService.FilterTransactionsByCategoryAsync(categoryName, type, month, year);
         }
 
         [HttpGet("[action]")]
-        public async Task<List<FilterByMonthOutPut>> GetByMonthAndYearAsync([FromQuery] long month, [FromQuery] long year)
+        public async Task<IPagedResult<FilterByMonthAndYearOutPut>> GetByTypeAsync([FromQuery] long month, [FromQuery] long year, [FromQuery] string type)
         {
-            return await _transactionAppService.FilterByMonthAndYearsync(month,year);
+            return await _transactionAppService.FilterTransactionByTypeAsync(type, month, year);
         }
 
         [HttpGet("[action]")]
-        public async Task<List<FilterByContactAndMonthOutPut>> GetByContactAndMonthAsync([FromQuery] long year, [FromQuery] long month, [FromQuery] long contactId)
+        public async Task<IPagedResult<FilterByMonthAndYearOutPut>> GetByMonthAndYearAsync([FromQuery] long month, [FromQuery] long year, [FromQuery] int pageNumber = 1)
         {
-            return await _transactionAppService.FilterByContactAndMonth(year, month, contactId);
+            return await _transactionAppService.FilterByMonthAndYearsync(month, year, pageNumber);
+        }
+
+        [HttpGet("[action]")]
+        public async Task<List<FilterByMonthAndYearOutPut>> GetByContactAsync([FromQuery] long year, [FromQuery] long month, [FromQuery] string contactName, [FromQuery] string type)
+        {
+            return await _transactionAppService.FilterByContactAndMonth(year, month, type, contactName);
         }
 
         [HttpGet("[action]")]
@@ -61,9 +65,21 @@ namespace ExpenseTrackerV2.WebApi.Controller
         }
 
         [HttpGet("[action]")]
-        public async Task<List<FilterByContactAndMonthOutPut>> GetExpenseMonthAsync([FromQuery] long year, [FromQuery] long month)
+        public async Task<decimal> GetEconomyAsync([FromQuery] long year, [FromQuery] long month)
         {
-            return await _transactionAppService.FilterExpenseWithContactAsync(year, month);
+            return await _transactionAppService.GetEconomyAsync(year, month);
+        }
+
+        //[HttpGet("[action]")]
+        //public async Task<List<FilterByMonthAndYearOutPut>> GetAllTransactionAsync([FromQuery] long year, [FromQuery] long month)
+        //{
+        //    return await _transactionAppService.GetAllTransactionsAsync(year, month);
+        //}
+
+        [HttpDelete("[action]")]
+        public async Task DeleteTransactionAsync([FromQuery] long id)
+        {
+            await _transactionAppService.DeleteAsync(id);
         }
     }
 }

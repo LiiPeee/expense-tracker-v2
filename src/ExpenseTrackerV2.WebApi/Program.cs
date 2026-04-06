@@ -1,6 +1,9 @@
 using ExpenseTrackerV2.Application;
 using ExpenseTrackerV2.Infrastructure;
 using DotNetEnv;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 var appSettings = builder.Configuration.SetBasePath(Directory.GetCurrentDirectory())
@@ -17,6 +20,21 @@ builder.Services.AddInfrastructureWebApi(builder.Configuration);
 
 // Configure the HTTP request pipeline.
 Env.Load();
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = appSettings["Jwt:Issuer"],
+        ValidAudience = appSettings["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(appSettings["Jwt:Token"]!)),
+        ClockSkew = TimeSpan.Zero
+    };
+});
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -43,8 +61,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 };
 
-app.UseCors();
-
+app.UseCors("FrontendDev");
+app.UseAuthentication(); 
 app.UseAuthorization();
 
 app.MapControllers();

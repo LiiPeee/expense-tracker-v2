@@ -1,0 +1,34 @@
+﻿using ExpenseTrackerV2.Application.Dtos.Request;
+using ExpenseTrackerV2.Application.Service;
+using ExpenseTrackerV2.Core.Domain.Entities;
+using ExpenseTrackerV2.Core.Domain.Models.Request;
+using ExpenseTrackerV2.Core.Domain.Service;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace ExpenseTrackerV2.WebApi.Controller
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class SubCategoryController : ControllerBase
+    {
+        private readonly ISubCategoryAppService _subCategoryAppService;
+        public SubCategoryController(ISubCategoryAppService subCategoryAppService)
+        {
+            _subCategoryAppService = subCategoryAppService;
+        }
+        [Authorize(Roles = "Admin,User")]
+        [HttpPost("[action]")]
+        public async Task CreateAsync([FromBody] CreateSubCategoryRequest request)
+        {
+            await _subCategoryAppService.CreateAsync(request);
+        }
+
+        [Authorize(Roles = "Admin,User")]
+        [HttpGet("[action]")]
+        public async Task<IEnumerable<SubCategory>> GetAllAsync()
+        {
+            return await _subCategoryAppService.GetAllAsync();
+        }      
+    }
+}
