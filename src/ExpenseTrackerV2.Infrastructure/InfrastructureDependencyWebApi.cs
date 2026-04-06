@@ -13,7 +13,6 @@ public static class InfrastructureDependencyWebApi
     {
         return services
         .AddScoped<DbSession>()
-        .AddScoped<IOrganizationRepository, OrganizationRepository>()
         .AddScoped<IAccountRepository, AccountRepository>()
         .AddScoped<ITransactionsRepository, TransactionsRepository>()
         .AddScoped<ICategoryRepository, CategoryRepository>()

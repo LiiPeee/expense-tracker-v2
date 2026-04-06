@@ -1,4 +1,3 @@
-
 using Azure.Core;
 using ExpenseTrackerV2.Core.Domain.Dtos.Output;
 using ExpenseTrackerV2.Core.Domain.Dtos.Request.Transaction;
@@ -9,6 +8,7 @@ using ExpenseTrackerV2.Core.Domain.Service;
 using ExpenseTrackerV2.Core.Domain.UnitOfWork;
 using ExpenseTrackerV2.Core.Infrastructure.Repository;
 using System.Transactions;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 namespace ExpenseTrackerV2.Application.Service;
 
 public class TransactionsAppService : ITransactionsAppService
@@ -42,14 +42,14 @@ public class TransactionsAppService : ITransactionsAppService
 
             var contact = await _contactRepository.GetByNameAsync(transactionRequest.ContactName);
 
-            var category = await _categoryRepository.GetByNameAsync(transactionRequest.CategoryName);
-
-            var subCategory = await _subCategoryRepository.GetByNameAsync(transactionRequest.SubCategoryName) ?? await _subCategoryRepository.AddAsync(new SubCategory { Name = transactionRequest.SubCategoryName, IsActive = true });
+            var category = await _categoryRepository.GetByNameAsync(EnumHelper.Category(transactionRequest.CategoryName));
 
             if (category is null || contact is null)
             {
                 throw new Exception("we cannt find contact or category for this transaction");
             }
+
+            var subCategory = await _subCategoryRepository.GetByNameAsync(transactionRequest.SubCategoryName) ?? await _subCategoryRepository.AddAsync(new SubCategory { Name = transactionRequest.SubCategoryName, IsActive = true, CategoryId = category.Id });
 
             var accountId = long.Parse(Environment.GetEnvironmentVariable("ACCOUNT_ID"));
 
@@ -93,7 +93,6 @@ public class TransactionsAppService : ITransactionsAppService
             throw ex;
         }
     }
-
     public async Task PaidAsync(PaidTransactionRequest paidTransactionRequest) 
     {
         try
@@ -132,16 +131,32 @@ public class TransactionsAppService : ITransactionsAppService
             throw ex;
         }
     }
-    public async Task<List<FilterByContactAndMonthOutPut>> FilterExpenseWithContactAsync(long year, long month)
+    public async Task DeleteAsync(long id)
+    {
+        try
+        {
+            _unitOfWork.BeginTransaction();
+
+            await _transactionRepository.DeleteTransactionAsync(id);
+
+             _unitOfWork.Commit();
+        }
+        catch (Exception ex)
+        {
+            _unitOfWork.Rollback();
+            throw ex;
+        }
+    }
+    public async Task<List<FilterByMonthAndYearOutPut>> FilterExpenseWithContactAsync(long year, long month)
     {
         try
         {
             var transactions = await _transactionRepository.FilterExpenseMonthWithContactAsync(year, month);
-            var filter = new List<FilterByContactAndMonthOutPut>();
+            var filter = new List<FilterByMonthAndYearOutPut>();
 
             foreach (var t in transactions)
             {
-                var outputFilter = new FilterByContactAndMonthOutPut()
+                var outputFilter = new FilterByMonthAndYearOutPut()
                 {
                     Amount = t.Amount,
                     Description = t.Description,
@@ -186,7 +201,6 @@ public class TransactionsAppService : ITransactionsAppService
             throw ex;
         }
     }
-
     public async Task<decimal> FilterIncomeMonthAndYearAsync(long year, long month)
     {
         try 
@@ -206,85 +220,167 @@ public class TransactionsAppService : ITransactionsAppService
         {
             throw ex;
         }
-       
     }
-
-    public async Task<List<FilterByMonthAndCategoryOutPut>> FilterTransactionsByCategoryAsync(long categoryId, long month, long year)
+    public async Task<IPagedResult<FilterByMonthAndYearOutPut>> FilterTransactionByTypeAsync(string type, long month, long year) 
     {
-        try
-        {
-             _unitOfWork.BeginTransaction();
+        try {
+            var transactions = await _transactionRepository.FilterTransactionsByTypeAsync(type, month, year);
 
-            var transaction = await _transactionRepository.FilterTransactionsByCategoryAsync(categoryId, month, year);
+            if (transactions.Items.Count == 0) throw new Exception("we cannt find transactions");
 
-            var category = new List<FilterByMonthAndCategoryOutPut>();
+            var filter = new List<FilterByMonthAndYearOutPut>();
 
-            foreach (var t in transaction)
+            foreach (var i in transactions.Items)
             {
-                var filter = new FilterByMonthAndCategoryOutPut()
+                filter.Add(new FilterByMonthAndYearOutPut
                 {
-                    Paid = t.Paid,
-                    Name = t.Name,
-                    Description = t.Description,
-                    Amount = t.Amount,
-                };
+                    Id = i.Id,
+                    Amount = i.Amount,
+                    Description = i.Description,
+                    Name = i.Name,
+                    Paid = i.Paid,
+                    CreatedDate = i.CreatedAt,
+                    TypeTransaction = i.TypeTransactionId,
+                    Recurrence = i.RecurrenceId,
+                    Contact = new ContactOutput
+                    {
+                        Email = i.Contact.Email,
+                        Name = i.Contact.Name,
+                        Phone = i.Contact.Phone
+                    },
+                    Category = new CategoryOutput
+                    {
+                        Name = i.Category.Name,
+                    },
+                    QuantityOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.QuantityInstallment : null,
+                    DateOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.DateOfInstallment : null
+                });
 
-               category.Add(filter);
             }
-
-            return category;
-        }
-        catch (Exception ex) 
-        {
-            throw ex;
-        }
-    }
-
-    public async Task<List<FilterByMonthOutPut>> FilterByMonthAndYearsync(long month, long year)
-    {
-        try
-        {
-             _unitOfWork.BeginTransaction();
-
-            var transaction = await _transactionRepository.FilterByMonthAndYearAsync(month, year);
-
-            var category = new List<FilterByMonthOutPut>();
-
-            foreach(var t in transaction)
+            return new IPagedResult<FilterByMonthAndYearOutPut>
             {
-
-                var filter = new FilterByMonthOutPut()
-                {
-                  Amount = t.Amount,
-                  Description= t.Description,
-                  Name = t.Name,
-                  Paid = t.Paid
-                };
-
-                category.Add(filter);
+               PageNumber = transactions.PageNumber,
+               PageSize = transactions.PageSize,
+               TotalRecords = transactions.TotalRecords,
+               Items = filter
             };
-
-            return category;
         }
         catch (Exception ex)
         {
             throw ex;
         }
     }
+    public async Task<IPagedResult<FilterByMonthAndYearOutPut>> FilterTransactionsByCategoryAsync(string categoryName, string type, long month, long year)
+    {
+        try
+        {
+            var transactions = await _transactionRepository.FilterTransactionsByCategoryAsync(categoryName, type, month, year);
+            
+            if(transactions.Items.Count == 0) throw new Exception("we cannt find transactions");
 
-    public async Task<List<FilterByContactAndMonthOutPut>> FilterByContactAndMonth(long year, long month, long contactId)
+            var filter = new List<FilterByMonthAndYearOutPut>();
+
+            foreach (var i in transactions.Items)
+            {
+                filter.Add(new FilterByMonthAndYearOutPut
+                {
+                    Id = i.Id,
+                    Amount = i.Amount,
+                    Description = i.Description,
+                    Name = i.Name,
+                    Paid = i.Paid,
+                    TypeTransaction = i.TypeTransactionId,
+                    Recurrence = i.RecurrenceId,
+                    Contact = new ContactOutput
+                    {
+                        Email = i.Contact.Email,
+                        Name = i.Contact.Name,
+                        Phone = i.Contact.Phone
+                    },
+                    Category = new CategoryOutput
+                    {
+                        Name = i.Category.Name,
+                    },
+                    QuantityOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.QuantityInstallment : null,
+                    DateOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.DateOfInstallment : null
+                });
+
+            }
+            return new IPagedResult<FilterByMonthAndYearOutPut>
+            {
+                PageNumber = transactions.PageNumber,
+                PageSize = transactions.PageSize,
+                TotalRecords = transactions.TotalRecords,
+                Items = filter
+            };
+           }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<IPagedResult<FilterByMonthAndYearOutPut>> FilterByMonthAndYearsync(long month, long year, int pageNumber = 1)
+    {
+        try
+        {
+            var transactions = await _transactionRepository.FilterByMonthAndYearAsync(month, year, pageNumber);
+
+            if (transactions.Items.Count == 0) throw new Exception("we cannt find transactions");
+
+            var filter = new List<FilterByMonthAndYearOutPut>();
+
+            foreach (var i in transactions.Items)
+            {
+                filter.Add(new FilterByMonthAndYearOutPut
+                {
+                    Id = i.Id,
+                    Amount = i.Amount,
+                    Description = i.Description,
+                    Name = i.Name,
+                    Paid = i.Paid,
+                    TypeTransaction = i.TypeTransactionId,
+                    Recurrence = i.RecurrenceId,
+                    Contact = new ContactOutput
+                    {
+                        Email = i.Contact.Email,
+                        Name = i.Contact.Name,
+                        Phone = i.Contact.Phone
+                    },
+                    Category = new CategoryOutput
+                    {
+                        Name = i.Category.Name,
+                    },
+                    QuantityOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.QuantityInstallment : null,
+                    DateOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.DateOfInstallment : null
+                });
+            }
+
+            return new IPagedResult<FilterByMonthAndYearOutPut>
+            {
+                PageNumber = transactions.PageNumber,
+                PageSize = transactions.PageSize,
+                TotalRecords = transactions.TotalRecords,
+                Items = filter
+            };
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
+    public async Task<List<FilterByMonthAndYearOutPut>> FilterByContactAndMonth(long year, long month, string type, string contactName)
     {
         try
         {
             _unitOfWork.BeginTransaction();
 
-            var transactions = await _transactionRepository.FilterByMonthAndContactAsync(year, month, contactId);
+            var transactions = await _transactionRepository.FilterByMonthAndContactAsync(year, month,type,contactName);
 
-            var filter = new List<FilterByContactAndMonthOutPut>();
+            var filter = new List<FilterByMonthAndYearOutPut>();
 
             foreach (var t in transactions)
             {
-                var outputFilter = new FilterByContactAndMonthOutPut()
+                var outputFilter = new FilterByMonthAndYearOutPut()
                 {
                     Amount = t.Amount,
                     Description = t.Description,
@@ -305,6 +401,70 @@ public class TransactionsAppService : ITransactionsAppService
         } catch (Exception ex) 
         { 
             throw ex; 
+        }
+    }
+    //public async Task<List<FilterByMonthAndYearOutPut>> GetAllTransactionsAsync(long year, long month) 
+    //{
+    //    try {
+    //        var transactions = await _transactionRepository.FilterByMonthAndYearAsync(month, year);
+
+    //        var filter = new List<FilterByMonthAndYearOutPut>();
+
+    //        foreach (var i in transactions.Items)
+    //        {
+    //            filter.Add(new FilterByMonthAndYearOutPut
+    //            {
+    //                Id = i.Id,
+    //                Amount = i.Amount,
+    //                Description = i.Description,
+    //                Name = i.Name,
+    //                Paid = i.Paid,
+    //                TypeTransaction = i.TypeTransactionId,
+    //                Recurrence = i.RecurrenceId,
+    //                Contact = new ContactOutput
+    //                {
+    //                    Email = i.Contact.Email,
+    //                    Name = i.Contact.Name,
+    //                    Phone = i.Contact.Phone
+    //                },
+    //                Category = new CategoryOutput 
+    //                {
+    //                    Name = i.Category.Name,
+    //                },
+    //                QuantityOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.QuantityInstallment : null,
+    //                DateOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.DateOfInstallment : null
+    //            });
+
+    //        }
+    //        return filter;
+    //    } catch (Exception ex) { throw ex; }
+    //}
+    public async Task<decimal> GetEconomyAsync(long year, long month)
+    {
+        try
+        {
+            var expense = await _transactionRepository.FilterExpenseMonthAndYearAsync(year, month);
+            var income  = await _transactionRepository.FilterIncomeMonthAndYearAsync(year, month);
+
+            var totalExpense = 0m;
+            var totalIncome = 0m;
+            foreach (var e in expense) 
+            { 
+                totalExpense += e.Amount;
+            }
+
+            foreach( var i in income)
+            {
+                totalIncome += i.Amount;
+            }
+
+            var total = totalIncome - totalExpense;
+            
+            return total;
+        } 
+        catch (Exception ex) 
+        {
+            throw ex;
         }
     }
     private async Task<List<Transactions>> CreateInstallemntsAsync(CreateTrasactionRequest request, long category, long contactId, long recurrenceId, long typeTransactionId, long accountId)

@@ -16,11 +16,10 @@ namespace ExpenseTrackerV2.Core.Domain.Enum
         LAZER = 6,
         BENS_PESSOAIS = 7,
         INVESTIMENTO = 8,
-        OUTROS = 9,
-        RENDA_VARIAVEL = 10,
-        BENEFICIOS = 11,
-        SALARIO = 12,
-        CONFORMTO
-
+        RENDA_VARIAVEL = 9,
+        BENEFICIOS = 10,
+        SALARIO = 11,
+        CONFORTO = 12,
+        OUTROS = 13
     }
 }

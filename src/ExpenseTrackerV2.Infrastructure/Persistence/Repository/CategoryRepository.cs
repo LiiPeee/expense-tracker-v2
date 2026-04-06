@@ -24,4 +24,18 @@ public class CategoryRepository : RepositoryBase<Category>, ICategoryRepository
             throw new Exception("lost connection");
         }
     }
+
+    public async Task<List<Category>> GetAllAsync()
+    {
+
+        var query = @"SELECT * FROM Category";
+
+        if (_db._connection.State != ConnectionState.Open)
+        {
+            throw new Exception("connection lost");
+        }
+
+         var categories = await _db._connection.QueryAsync<Category>(query, new { }, transaction: _db._transaction);
+        return categories.ToList();
+    }
 }

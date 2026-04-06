@@ -7,12 +7,14 @@ namespace ExpenseTrackerV2.Application.Dtos.Request;
 
 public class ContactRequest
 {
+    public string? ContactId { get; set; }
     [Required(ErrorMessage = "Name is required")]
     public string Name { get; set; }
     [Required(ErrorMessage = "Email is required")]
     public string Email { get; set; }
-    [Required(ErrorMessage = "Name is required")]
+    [Required(ErrorMessage = "Phone is required")]
     public string Phone { get; set; }
+    [Required(ErrorMessage = "Document is required")]
     public string? Document { get; set; }
     [Required(ErrorMessage = "TypeContact is required")]
     [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -22,6 +24,5 @@ public class ContactRequest
     public string State { get; set; } = null!;
     public string ZipCode { get; set; } = null!;
     public string Country { get; set; } = null!;
-    public string ContactName { get; set; } = null!;
     public bool IsPrimary { get; set; }
 }

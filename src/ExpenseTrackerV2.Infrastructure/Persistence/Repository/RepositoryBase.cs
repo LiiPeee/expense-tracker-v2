@@ -96,7 +96,6 @@ public class RepositoryBase<T> : IRepositoryBase<T> where T : class
         {
             throw new Exception("connection lost");
         }
-        
     }
 
     public async Task<bool> DeleteAsync(long id)

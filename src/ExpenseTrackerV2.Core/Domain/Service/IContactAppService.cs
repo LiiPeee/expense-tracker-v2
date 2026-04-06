@@ -11,5 +11,7 @@ namespace ExpenseTrackerV2.Core.Domain.Service
     public interface IContactAppService
     {
         Task<Contact?> CreateAsync(ContactRequest request);
+        Task<List<Contact?>> GetAllsync();
+        Task DeleteContactAsync(string contactId);
     }
 }

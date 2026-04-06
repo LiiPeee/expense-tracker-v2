@@ -16,6 +16,7 @@ public class Transactions : BaseEntity
     public string? QuantityInstallment { get; set; }
     public long RecurrenceId { get; set; }
     public Contact Contact { get; set; } = null!;
+    public SubCategory? SubCategory { get; set; }
     public long? ContactId { get; set; }
     public long AccountId { get; set; }
     public Account Account { get; set; } = null!;

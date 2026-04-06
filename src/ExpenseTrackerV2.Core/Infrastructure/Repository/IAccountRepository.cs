@@ -4,5 +4,5 @@ namespace ExpenseTrackerV2.Core.Domain.Repository;
 
 public interface IAccountRepository : IRepositoryBase<Account>
 {
-
+    Task<Account?> GetByEmailAsync(string email);
 }

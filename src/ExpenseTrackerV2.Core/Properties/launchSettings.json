@@ -1,0 +1,7 @@
+{
+  "profiles": {
+    "ExpenseTrackerV2.Core": {
+      "commandName": "Project"
+    }
+  }
+}

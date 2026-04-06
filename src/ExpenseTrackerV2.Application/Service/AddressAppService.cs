@@ -2,6 +2,7 @@ using ExpenseTrackerV2.Application.Dtos.Request;
 using ExpenseTrackerV2.Core.Domain.Entities;
 using ExpenseTrackerV2.Core.Domain.Repository;
 using ExpenseTrackerV2.Core.Domain.Service;
+using ExpenseTrackerV2.Core.Domain.UnitOfWork;
 using System;
 
 namespace ExpenseTrackerV2.Application.Service;
@@ -10,11 +11,13 @@ public class AddressAppService: IAddressAppService
 {
     private readonly IAddressRepository _addressRepository;
     private readonly IContactRepository _contactRepository;
+    public readonly IUnitOfWork _unitOfWork;
 
-    public  AddressAppService(IContactRepository contactRepository, IAddressRepository addressRepository)
+    public  AddressAppService(IContactRepository contactRepository, IAddressRepository addressRepository, IUnitOfWork unitOfWork)
     {
         _addressRepository = addressRepository;
         _contactRepository = contactRepository;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task CreateAsync(AddressRequest addressRequest)
@@ -31,7 +34,7 @@ public class AddressAppService: IAddressAppService
         };
 
         await _addressRepository.AddAsync(address);
+
+        _unitOfWork.Commit();
     }
-
-
 }

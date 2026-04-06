@@ -11,8 +11,9 @@ public class Account : BaseEntity
     public string Email { get; set; }
     public string Password { get; set; } = null!;
     public decimal Balance { get; set; }
+    public string Role { get; set; } = "User";
+    public string? RefreshToken { get; set; }
+    public DateTimeOffset? RefreshTokenExpiryTime { get; set; }
     public bool IsActive { get; set; } = true;
-    public long OrganizationId { get; set; }
-    public Organization Organization { get; set; }
     public List<Transactions> Transactions { get; set; } = new();
 }

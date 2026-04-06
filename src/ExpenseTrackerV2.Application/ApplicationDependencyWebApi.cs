@@ -10,10 +10,11 @@ public static class ApplicationDependencyWebApi
     public static IServiceCollection ConfigureApplicationServicesWebApi(this IServiceCollection services, IConfiguration configuratiin)
     {
         return services
-        .AddScoped<IOrganizationAppService, OrganzationAppService>()
-        .AddScoped<IAccountAppService,AccountAppService>()
+        .AddScoped<IAuthenticationAppService,AuthenticationAppService>()
         .AddScoped<IContactAppService,ContactAppService>()
-        .AddScoped<ITransactionsAppService, TransactionsAppService>();
+        .AddScoped<ITransactionsAppService, TransactionsAppService>()
+        .AddScoped<ISubCategoryAppService, SubCategoryAppService>()
+        .AddScoped<ICategoryAppService, CategoryAppService>();
 
     }
 }

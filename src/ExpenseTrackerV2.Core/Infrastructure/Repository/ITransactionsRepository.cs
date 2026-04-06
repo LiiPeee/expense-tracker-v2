@@ -6,10 +6,12 @@ namespace ExpenseTrackerV2.Core.Domain.Repository;
 
 public interface ITransactionsRepository : IRepositoryBase<Transactions>
 {
-    Task<List<Transactions>> FilterTransactionsByCategoryAsync(long categoryId, long month, long year);
-    Task<List<Transactions>> FilterByMonthAndYearAsync(long month, long year);
-    Task<List<Transactions>> FilterByMonthAndContactAsync(long year,long month, long contactId);
+    Task<IPagedResult<Transactions>> FilterTransactionsByCategoryAsync(string categoryName, string type, long month, long year, int pageNumber = 1);
+    Task<IPagedResult<Transactions>> FilterByMonthAndYearAsync(long month, long year,int pageNumber = 1);
+    Task<List<Transactions>> FilterByMonthAndContactAsync(long year,long month,string type, string contactName);
     Task<List<Transactions>> FilterExpenseMonthAndYearAsync(long year, long month);
     Task<List<Transactions>> FilterIncomeMonthAndYearAsync(long year, long month);
     Task<List<Transactions>> FilterExpenseMonthWithContactAsync(long year, long month);
+    Task DeleteTransactionAsync(long id);
+    Task<IPagedResult<Transactions>> FilterTransactionsByTypeAsync(string type, long month, long year, int pageNumber = 1);
 }

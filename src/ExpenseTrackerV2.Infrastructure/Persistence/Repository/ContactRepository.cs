@@ -23,4 +23,16 @@ public class ContactRepository : RepositoryBase<Contact>, IContactRepository
             throw new Exception("lost connection");
         }
     }
+    
+    public async Task<List<Contact?>> GetByIdAccount(long accountId)
+    {
+        var query = @"SELECT * FROM Contact cc Where AccountId = @AccountId";
+
+        if(_db._connection.State == ConnectionState.Open)
+            return (await _db._connection.QueryAsync<Contact> (query, new { AccountId = accountId }, transaction: _db._transaction)).ToList();
+        else
+        {
+            throw new Exception("lost connection");
+        }
+    }
 }
