@@ -1,85 +1,118 @@
 ﻿using ExpenseTrackerV2.Core.Domain.Dtos.Output;
 using ExpenseTrackerV2.Core.Domain.Dtos.Request.Transaction;
 using ExpenseTrackerV2.Core.Domain.Entities;
+using ExpenseTrackerV2.Core.Domain.Enum;
 using ExpenseTrackerV2.Core.Domain.Service;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 
 namespace ExpenseTrackerV2.WebApi.Controller
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "User")]
     public class TransactionController : ControllerBase
     {
         private readonly ITransactionsAppService _transactionAppService;
+
         public TransactionController(ITransactionsAppService transactionAppService)
         {
             _transactionAppService = transactionAppService;
         }
 
         [HttpPost("[action]")]
-        public async Task<List<Transactions>> CreateAsync([FromBody] CreateTrasactionRequest transactionRequest)
+        public async Task<ActionResult<List<Transactions>>> CreateAsync([FromBody] CreateTrasactionRequest transactionRequest)
         {
-            return await _transactionAppService.CreateAsync(transactionRequest);
+            var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            return Ok(await _transactionAppService.CreateAsync(accountId, transactionRequest));
         }
 
         [HttpPatch("[action]")]
-        public async Task EditAsync([FromBody] PaidTransactionRequest paidTransactionRequest)
+        public async Task<ActionResult> EditAsync([FromBody] PaidTransactionRequest paidTransactionRequest)
         {
-            await _transactionAppService.PaidAsync(paidTransactionRequest);
+            var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            await _transactionAppService.PaidAsync(accountId, paidTransactionRequest);
+            return Ok();
         }
 
         [HttpGet("[action]")]
-        public async Task<IPagedResult<FilterByMonthAndYearOutPut>> GetByCategoryAsync([FromQuery] string categoryName, [FromQuery] long month, [FromQuery] long year, [FromQuery] string type)
+        public async Task<ActionResult<IPagedResult<FilterByMonthAndYearOutPut>>> GetByCategoryAsync(
+            [FromQuery] Categories categoryName,
+            [FromQuery][Range(1, 12)] long month,
+            [FromQuery][Range(2000, 2100)] long year,
+            [FromQuery] TypeTransaction type)
         {
-            return await _transactionAppService.FilterTransactionsByCategoryAsync(categoryName, type, month, year);
+            var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            return Ok(await _transactionAppService.FilterTransactionsByCategoryAsync(accountId, categoryName, type, month, year));
         }
 
         [HttpGet("[action]")]
-        public async Task<IPagedResult<FilterByMonthAndYearOutPut>> GetByTypeAsync([FromQuery] long month, [FromQuery] long year, [FromQuery] string type)
+        public async Task<ActionResult<IPagedResult<FilterByMonthAndYearOutPut>>> GetByTypeAsync(
+            [FromQuery][Range(1, 12)] long month,
+            [FromQuery][Range(2000, 2100)] long year,
+            [FromQuery] TypeTransaction type)
         {
-            return await _transactionAppService.FilterTransactionByTypeAsync(type, month, year);
+            var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            return Ok(await _transactionAppService.FilterTransactionByTypeAsync(accountId, type, month, year));
         }
 
         [HttpGet("[action]")]
-        public async Task<IPagedResult<FilterByMonthAndYearOutPut>> GetByMonthAndYearAsync([FromQuery] long month, [FromQuery] long year, [FromQuery] int pageNumber = 1)
+        public async Task<ActionResult<IPagedResult<FilterByMonthAndYearOutPut>>> GetByMonthAndYearAsync(
+            [FromQuery][Range(1, 12)] long month,
+            [FromQuery][Range(2000, 2100)] long year,
+            [FromQuery][Range(1, 10)] int pageNumber = 1)
         {
-            return await _transactionAppService.FilterByMonthAndYearsync(month, year, pageNumber);
+            var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            return Ok(await _transactionAppService.FilterByMonthAndYearsync(accountId, month, year, pageNumber));
         }
 
         [HttpGet("[action]")]
-        public async Task<List<FilterByMonthAndYearOutPut>> GetByContactAsync([FromQuery] long year, [FromQuery] long month, [FromQuery] string contactName, [FromQuery] string type)
+        public async Task<ActionResult<List<FilterByMonthAndYearOutPut>>> GetByContactAsync(
+            [FromQuery][Range(2000, 2100)] long year,
+            [FromQuery][Range(1, 12)] long month,
+            [FromQuery][StringLength(50)] string contactName,
+            [FromQuery] TypeTransaction type)
         {
-            return await _transactionAppService.FilterByContactAndMonth(year, month, type, contactName);
+            var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            return Ok(await _transactionAppService.FilterByContactAndMonth(accountId, year, month, type, contactName));
         }
 
         [HttpGet("[action]")]
-        public async Task<decimal> GetExpenseByMonthAndYearAsync([FromQuery] long year, [FromQuery] long month)
+        public async Task<ActionResult<decimal>> GetExpenseByMonthAndYearAsync(
+            [FromQuery][Range(2000, 2100)] long year,
+            [FromQuery][Range(1, 12)] long month)
         {
-            return await _transactionAppService.FilterExpenseMonthAndYearAsync(year, month);
+            var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            return Ok(await _transactionAppService.FilterExpenseMonthAndYearAsync(accountId, year, month));
         }
 
         [HttpGet("[action]")]
-        public async Task<decimal> GetIncomeByMonthAndYearAsync([FromQuery] long year, [FromQuery] long month)
+        public async Task<ActionResult<decimal>> GetIncomeByMonthAndYearAsync(
+            [FromQuery][Range(2000, 2100)] long year,
+            [FromQuery][Range(1, 12)] long month)
         {
-            return await _transactionAppService.FilterIncomeMonthAndYearAsync(year, month);
+            var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            return Ok(await _transactionAppService.FilterIncomeMonthAndYearAsync(accountId, year, month));
         }
 
         [HttpGet("[action]")]
-        public async Task<decimal> GetEconomyAsync([FromQuery] long year, [FromQuery] long month)
+        public async Task<ActionResult<decimal>> GetEconomyAsync(
+            [FromQuery][Range(2000, 2100)] long year,
+            [FromQuery][Range(1, 12)] long month)
         {
-            return await _transactionAppService.GetEconomyAsync(year, month);
+            var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            return Ok(await _transactionAppService.GetEconomyAsync(accountId, year, month));
         }
-
-        //[HttpGet("[action]")]
-        //public async Task<List<FilterByMonthAndYearOutPut>> GetAllTransactionAsync([FromQuery] long year, [FromQuery] long month)
-        //{
-        //    return await _transactionAppService.GetAllTransactionsAsync(year, month);
-        //}
 
         [HttpDelete("[action]")]
-        public async Task DeleteTransactionAsync([FromQuery] long id)
+        public async Task<ActionResult> DeleteTransactionAsync([FromQuery] long id)
         {
-            await _transactionAppService.DeleteAsync(id);
+            var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            await _transactionAppService.DeleteAsync(accountId, id);
+            return Ok();
         }
     }
 }

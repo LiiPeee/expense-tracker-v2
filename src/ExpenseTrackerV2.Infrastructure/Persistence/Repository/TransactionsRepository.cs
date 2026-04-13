@@ -1,4 +1,3 @@
-using Azure;
 using Dapper;
 using ExpenseTrackerV2.Core.Domain.Dtos.Output;
 using ExpenseTrackerV2.Core.Domain.Entities;
@@ -9,20 +8,17 @@ namespace ExpenseTrackerV2.Infrastructure.Persistence.Repository;
 
 public class TransactionsRepository : RepositoryBase<Transactions>, ITransactionsRepository
 {
-
     public TransactionsRepository(DbSession connection) : base(connection)
     {
-
     }
 
     // FILTRO POR CATEGORIA, TIPO, MES E ANO
-    public async Task<IPagedResult<Transactions>> FilterTransactionsByCategoryAsync(string categoryName, string type, long month, long year, int pageNumber = 1)
+    public async Task<IPagedResult<Transactions>> FilterTransactionsByCategoryAsync(long accountId, string categoryName, string type, long month, long year, int pageNumber = 1)
     {
         const int pageSize = 10;
         const int maxPages = 10;
 
         pageNumber = Math.Clamp(pageNumber, 1, maxPages);
-
         var offset = (pageNumber - 1) * pageSize;
 
         var query = @"
@@ -31,7 +27,8 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         INNER JOIN Contact ct ON t.ContactId = ct.Id
         INNER JOIN Category cat ON t.CategoryId = cat.Id
         INNER JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
-        WHERE tp.Name = @Type AND cat.Name = @Category AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)
+        WHERE t.AccountId = @AccountId AND tp.Name = @Type AND cat.Name = @Category 
+            AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)
             OR (t.DateOfInstallment IS NOT NULL AND MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year))
         ORDER BY t.Id DESC
         OFFSET @OffSet ROWS FETCH NEXT @PageSize ROWS ONLY;
@@ -41,7 +38,8 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         INNER JOIN Contact ct ON t.ContactId = ct.Id
         INNER JOIN Category cat ON t.CategoryId = cat.Id
         INNER JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
-        WHERE tp.Name = @Type AND cat.Name = @Category AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)
+        WHERE t.AccountId = @AccountId AND tp.Name = @Type AND cat.Name = @Category 
+            AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)
             OR (t.DateOfInstallment IS NOT NULL AND MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year));";
 
         if (_db._connection.State != ConnectionState.Open)
@@ -51,7 +49,7 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
 
         using var multi = await _db._connection.QueryMultipleAsync(
             query,
-            new { Month = month, Year = year, OffSet = offset, PageSize = pageSize, Type = type, Category = categoryName },
+            new { AccountId = accountId, Month = month, Year = year, OffSet = offset, PageSize = pageSize, Type = type, Category = categoryName },
             _db._transaction);
 
         var items = multi.Read<Transactions, Contact, Category, Transactions>(
@@ -75,13 +73,12 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
     }
 
     // FILTRO POR TIPO, MES E ANO
-    public async Task<IPagedResult<Transactions>> FilterTransactionsByTypeAsync(string type, long month, long year, int pageNumber = 1)
+    public async Task<IPagedResult<Transactions>> FilterTransactionsByTypeAsync(long accountId, string type, long month, long year, int pageNumber = 1)
     {
         const int pageSize = 10;
         const int maxPages = 10;
 
         pageNumber = Math.Clamp(pageNumber, 1, maxPages);
-
         var offset = (pageNumber - 1) * pageSize;
 
         var query = @"
@@ -90,8 +87,8 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         INNER JOIN Contact ct ON t.ContactId = ct.Id
         INNER JOIN Category cat ON t.CategoryId = cat.Id
         INNER JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
-        
-        WHERE tp.Name = @Type AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)
+        WHERE t.AccountId = @AccountId AND tp.Name = @Type 
+            AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)
             OR (t.DateOfInstallment IS NOT NULL AND MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year))
         ORDER BY t.Id DESC
         OFFSET @OffSet ROWS FETCH NEXT @PageSize ROWS ONLY;
@@ -101,7 +98,8 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         INNER JOIN Contact ct ON t.ContactId = ct.Id
         INNER JOIN Category cat ON t.CategoryId = cat.Id
         INNER JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
-        WHERE tp.Name = @Type AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)
+        WHERE t.AccountId = @AccountId AND tp.Name = @Type 
+            AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)
             OR (t.DateOfInstallment IS NOT NULL AND MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year));";
 
         if (_db._connection.State != ConnectionState.Open)
@@ -111,7 +109,7 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
 
         using var multi = await _db._connection.QueryMultipleAsync(
             query,
-            new { Month = month, Year = year, OffSet = offset, PageSize = pageSize, Type = type },
+            new { AccountId = accountId, Month = month, Year = year, OffSet = offset, PageSize = pageSize, Type = type },
             _db._transaction);
 
         var items = multi.Read<Transactions, Contact, Category, Transactions>(
@@ -134,13 +132,12 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         };
     }
 
-    public async Task<IPagedResult<Transactions>> FilterByMonthAndYearAsync(long month, long year, int pageNumber = 1)
+    public async Task<IPagedResult<Transactions>> FilterByMonthAndYearAsync(long accountId, long month, long year, int pageNumber = 1)
     {
         const int pageSize = 10;
         const int maxPages = 10;
 
         pageNumber = Math.Clamp(pageNumber, 1, maxPages);
-
         var offset = (pageNumber - 1) * pageSize;
 
         var query = @"
@@ -148,7 +145,8 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         FROM Transactions t
         INNER JOIN Contact ct ON t.ContactId = ct.Id
         INNER JOIN Category cat ON t.CategoryId = cat.Id
-        WHERE ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)
+        WHERE t.AccountId = @AccountId 
+            AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)
             OR (t.DateOfInstallment IS NOT NULL AND MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year))
         ORDER BY t.Id DESC
         OFFSET @OffSet ROWS FETCH NEXT @PageSize ROWS ONLY;
@@ -157,7 +155,8 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         FROM Transactions t
         INNER JOIN Contact ct ON t.ContactId = ct.Id
         INNER JOIN Category cat ON t.CategoryId = cat.Id
-        WHERE ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)
+        WHERE t.AccountId = @AccountId 
+            AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)
             OR (t.DateOfInstallment IS NOT NULL AND MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year));";
 
         if (_db._connection.State != ConnectionState.Open)
@@ -167,7 +166,7 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
 
         using var multi = await _db._connection.QueryMultipleAsync(
             query,
-            new { Month = month, Year = year, OffSet = offset, PageSize = pageSize },
+            new { AccountId = accountId, Month = month, Year = year, OffSet = offset, PageSize = pageSize },
             _db._transaction);
 
         var items = multi.Read<Transactions, Contact, Category, Transactions>(
@@ -190,78 +189,79 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         };
     }
 
-    public async Task<List<Transactions>> FilterByMonthAndContactAsync(long year, long month, string type, string contactName)
+    public async Task<List<Transactions>> FilterByMonthAndContactAsync(long accountId, long year, long month, string type, string contactName)
     {
-        var query = @"SELECT * FROM Transactions t 
+        var query = @"SELECT t.*, ctt.*
+        FROM Transactions t 
         INNER JOIN Contact ctt ON t.ContactId = ctt.Id 
         INNER JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
-        WHERE ((MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year) OR 
-        (MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)) AND ctt.Name = @ContactName AND tp.Name = @TypeName";
+        WHERE t.AccountId = @AccountId 
+            AND ((MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year) 
+            OR (MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)) 
+            AND ctt.Name = @ContactName AND tp.Name = @TypeName";
 
         if (_db._connection.State == ConnectionState.Open)
         {
-
             var result = await _db._connection.QueryAsync<Transactions, Contact, Transactions>(query, (t, c) =>
             {
                 t.Contact = c;
                 return t;
-            }, new { Month = month, Name = contactName, TypeName = type, Year = year }, _db._transaction, splitOn: "Id");
+            }, new { AccountId = accountId, Month = month, ContactName = contactName, TypeName = type, Year = year }, _db._transaction, splitOn: "Id");
 
             return result.ToList();
         }
         else
         {
-            throw new Exception("somenthing wrong ocurr in DB");
+            throw new Exception("connection lost");
         }
     }
 
-    public async Task<List<Transactions>> FilterExpenseMonthAndYearAsync(long year, long month)
+    public async Task<List<Transactions>> FilterExpenseMonthAndYearAsync(long accountId, long year, long month)
     {
         var query = @"SELECT * FROM Transactions t
-        LEFT JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
-        WHERE ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year) OR 
-        (t.DateOfInstallment IS NOT NULL AND MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year))
-        AND t.TypeTransactionId = 1";
+        WHERE t.AccountId = @AccountId 
+            AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year) 
+            OR (t.DateOfInstallment IS NOT NULL AND MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year))
+            AND t.TypeTransactionId = 1";
 
         if (_db._connection.State == ConnectionState.Open)
         {
-
-            var result = await _db._connection.QueryAsync<Transactions>(query, new { Month = month, Year = year }, _db._transaction);
-
+            var result = await _db._connection.QueryAsync<Transactions>(query, new { AccountId = accountId, Month = month, Year = year }, _db._transaction);
             return result.ToList();
         }
         else
         {
-            throw new Exception("somenthing wrong ocurr in DB");
+            throw new Exception("connection lost");
         }
     }
 
-    public async Task<List<Transactions>> FilterIncomeMonthAndYearAsync(long year, long month)
+    public async Task<List<Transactions>> FilterIncomeMonthAndYearAsync(long accountId, long year, long month)
     {
         var query = @"SELECT * FROM Transactions t
-        LEFT JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
-        WHERE ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year) OR 
-        (t.DateOfInstallment IS NOT NULL AND MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year))
-        AND t.TypeTransactionId = 2";
+        WHERE t.AccountId = @AccountId 
+            AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year) 
+            OR (t.DateOfInstallment IS NOT NULL AND MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year))
+            AND t.TypeTransactionId = 2";
 
         if (_db._connection.State == ConnectionState.Open)
         {
-            var result = await _db._connection.QueryAsync<Transactions>(query, new { Month = month, Year = year }, _db._transaction);
-
+            var result = await _db._connection.QueryAsync<Transactions>(query, new { AccountId = accountId, Month = month, Year = year }, _db._transaction);
             return result.ToList();
         }
         else
         {
-            throw new Exception("somenthing wrong ocurr in DB");
+            throw new Exception("connection lost");
         }
     }
 
-    public async Task<List<Transactions>> FilterExpenseMonthWithContactAsync(long year, long month)
+    public async Task<List<Transactions>> FilterExpenseMonthWithContactAsync(long accountId, long year, long month)
     {
-        var query = @"SELECT * FROM Transactions t 
+        var query = @"SELECT t.*, ct.*
+        FROM Transactions t 
         LEFT JOIN Contact ct ON t.ContactId = ct.Id
-        WHERE ((MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year) 
-        OR (MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year))";
+        WHERE t.AccountId = @AccountId 
+            AND ((MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year) 
+            OR (MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year))";
 
         if (_db._connection.State == ConnectionState.Open)
         {
@@ -270,27 +270,27 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
                 t.Contact = c;
                 return t;
             },
-            new { Month = month, Year = year }, transaction: _db._transaction, splitOn: "Id");
+            new { AccountId = accountId, Month = month, Year = year }, transaction: _db._transaction, splitOn: "Id");
 
             return result.ToList();
         }
         else
         {
-            throw new Exception("somenthing wrong ocurr in DB");
+            throw new Exception("connection lost");
         }
     }
 
-    public async Task DeleteTransactionAsync(long id)
+    public async Task DeleteTransactionAsync(long accountId, long id)
     {
-        var query = @"DELETE FROM Transactions WHERE Id = @Id";
+        var query = @"DELETE FROM Transactions WHERE Id = @Id AND AccountId = @AccountId";
 
         if (_db._connection.State == ConnectionState.Open)
         {
-            await _db._connection.ExecuteAsync(query, new { Id = id }, _db._transaction);
+            await _db._connection.ExecuteAsync(query, new { Id = id, AccountId = accountId }, _db._transaction);
         }
         else
         {
-            throw new Exception("somenthing wrong ocurr in DB");
+            throw new Exception("connection lost");
         }
     }
 }

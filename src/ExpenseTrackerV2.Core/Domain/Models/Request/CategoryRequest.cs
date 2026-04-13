@@ -5,6 +5,10 @@ namespace ExpenseTrackerV2.Application.Dtos.Request;
 
 public class CategoryRequest
 {
-    public string Name { get; set; }
+    [Required]
+    [StringLength(30)]
+    public required string Name { get; set; }
+    [Required]
+    [StringLength(30)]
     public string? Description { get; set; }
 }

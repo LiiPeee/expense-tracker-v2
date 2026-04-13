@@ -79,3 +79,5 @@ docker-compose.override.yml
 # Temporários
 *.tmp
 *.bak
+
+appsettings.json

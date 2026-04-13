@@ -20,7 +20,7 @@ namespace ExpenseTrackerV2.WebApi.Controller
         {
             _categoryAppService = categoryAppService;
         }
-        [Authorize(Roles = "Admin,User")]
+        [Authorize(Roles = "User")]
         [HttpGet("[action]")]
         public async Task<IEnumerable<AllCategoriesOutPut>> GetAllAsync()
         {

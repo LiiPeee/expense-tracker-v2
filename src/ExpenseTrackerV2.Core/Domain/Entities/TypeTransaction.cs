@@ -6,7 +6,9 @@ using System.Threading.Tasks;
 
 namespace ExpenseTrackerV2.Core.Domain.Entities
 {
-    public class TypeTransaction : BaseEntity
+    public enum TypeTransaction
     {
+        INCOME,
+        EXPENSE
     }
 }

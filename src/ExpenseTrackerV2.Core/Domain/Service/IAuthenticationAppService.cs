@@ -7,7 +7,8 @@ namespace ExpenseTrackerV2.Core.Domain.Service;
 
 public interface IAuthenticationAppService
 {
-    Task<Account?> CreateAsync(CreateAccountRequest request);
+    Task<CreateAccountDto?> CreateAsync(CreateAccountRequest request);
     Task<TokenResponseDto?> LoginAsync(LoginRequest request);
     Task<TokenResponseDto?> RefreshTokenAsync(RefreshTokenRequestDto request);
+    Task<string> LogOutAsync(long accountId);
 }

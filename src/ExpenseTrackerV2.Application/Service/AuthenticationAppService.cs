@@ -3,6 +3,7 @@ using ExpenseTrackerV2.Core.Domain.Models.Output;
 using ExpenseTrackerV2.Core.Domain.Models.Request.Account;
 using ExpenseTrackerV2.Core.Domain.Repository;
 using ExpenseTrackerV2.Core.Domain.Service;
+using ExpenseTrackerV2.Core.Domain.UnitOfWork;
 using Microsoft.AspNet.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -12,13 +13,14 @@ using System.Security.Cryptography;
 using System.Text;
 namespace ExpenseTrackerV2.Application.Service;
 
-public class AuthenticationAppService(IAccountRepository accountRepository, IConfiguration configuration) : IAuthenticationAppService
+public class AuthenticationAppService(IAccountRepository accountRepository, IUnitOfWork unitOfWork, IConfiguration configuration) : IAuthenticationAppService
 {
     private readonly IAccountRepository _accountRepository = accountRepository;
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
-    public async Task<Account?> CreateAsync(CreateAccountRequest request)
+    public async Task<CreateAccountDto?> CreateAsync(CreateAccountRequest request)
     {
-        if(await _accountRepository.GetByEmailAsync(request.Email) != null) throw new Exception("account is already exist");
+        if (await _accountRepository.GetByEmailAsync(request.Email) != null) throw new Exception("account is already exist");
 
         var hashPassword = new PasswordHasher().HashPassword(request.Password);
 
@@ -31,7 +33,13 @@ public class AuthenticationAppService(IAccountRepository accountRepository, ICon
             Balance = 0,
         };
 
-        return await _accountRepository.AddAsync(account);
+        var accountResponse = await _accountRepository.AddAsync(account);
+
+        return new CreateAccountDto()
+        {
+            Name = accountResponse.FirstName,
+            Email = accountResponse.Email
+        };
     }
 
     public async Task<TokenResponseDto?> LoginAsync(LoginRequest request)
@@ -40,29 +48,55 @@ public class AuthenticationAppService(IAccountRepository accountRepository, ICon
         {
             var account = await _accountRepository.GetByEmailAsync(request.Email);
 
-            if (account == null) throw new Exception("we cannt find account with this email");
+            if (account == null) throw new Exception("email is invalid");
 
             if (new PasswordHasher().VerifyHashedPassword(account.Password, request.Password) == PasswordVerificationResult.Failed)
             {
-                throw new Exception("password is incorrect");
+                throw new Exception("password is invalid");
             }
 
             return new TokenResponseDto()
             {
-              AccessToken = CreateToken(account),
-              RefreshToken = await GenerateAndSaveRefreshToken(account)
+                AccessToken = CreateToken(account),
+                RefreshToken = await GenerateAndSaveRefreshToken(account)
             };
-        } catch(Exception error)
-        {
-         throw error;
         }
+        catch (Exception error)
+        {
+            throw error;
+        }
+    }
+
+    public async Task<string> LogOutAsync(long accountId)
+    {
+        var account = await _accountRepository.GetByIdAsync(accountId);
+
+        if (account != null)
+        {
+            account.RefreshToken = null;
+            account.RefreshTokenExpiryTime = null;
+            await _accountRepository.UpdateAsync(account);
+
+            _unitOfWork.Commit();
+
+            return "logged out successfully";
+        }
+        throw new Exception("account not found");
     }
 
     public async Task<TokenResponseDto?> RefreshTokenAsync(RefreshTokenRequestDto request)
     {
+        _unitOfWork.BeginTransaction();
+
         var account = await ValidateRefreshTokenAsync(request.AccountId, request.RefreshToken);
 
-        if(account is null) throw new Exception("invalid refresh token");
+        if (account is null) throw new Exception("invalid refresh token");
+
+        account.RefreshToken = null;
+        account.RefreshTokenExpiryTime = null;
+        await _accountRepository.UpdateAsync(account);
+
+        _unitOfWork.Commit();
 
         return new TokenResponseDto()
         {
@@ -82,7 +116,7 @@ public class AuthenticationAppService(IAccountRepository accountRepository, ICon
 
         var keyToken = configuration.GetValue<string>("Jwt:Token");
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration.GetValue<string>("Jwt:Token")));
-        
+
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
 
         var tokenDescripton = new JwtSecurityToken(
@@ -104,14 +138,16 @@ public class AuthenticationAppService(IAccountRepository accountRepository, ICon
         return Convert.ToBase64String(randomNumber);
     }
 
-    private async Task<string> GenerateAndSaveRefreshToken(Account account) 
+    private async Task<string> GenerateAndSaveRefreshToken(Account account)
     {
         var refreshToken = GenerateRefreshToken();
-        
+
         account.RefreshToken = refreshToken;
-        account.RefreshTokenExpiryTime = DateTime.UtcNow.AddMinutes(configuration.GetValue<int>("Jwt:RefreshTokenExpirationMinutes"));   
-        
+        account.RefreshTokenExpiryTime = DateTime.UtcNow.AddMinutes(configuration.GetValue<int>("Jwt:RefreshTokenExpirationMinutes"));
+
         await _accountRepository.UpdateAsync(account);
+
+        _unitOfWork.Commit();
         return refreshToken;
 
     }
@@ -125,5 +161,4 @@ public class AuthenticationAppService(IAccountRepository accountRepository, ICon
         }
         return account;
     }
-
 }

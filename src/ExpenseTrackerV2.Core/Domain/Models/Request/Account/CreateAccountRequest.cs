@@ -1,9 +1,17 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace ExpenseTrackerV2.Core.Domain.Models.Request.Account;
 
 public class CreateAccountRequest
 {
+    [StringLength(50)]
     public required string FirstName { get; set; }
+    [StringLength(50)]
     public required string LastName { get; set; }
+    [StringLength(64)]
+    [EmailAddress]
     public required string Email { get; set; }
+    [StringLength(20, MinimumLength = 8, ErrorMessage = "Senha deve ter entre 8 e 20 caracteres")]
+    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$", ErrorMessage = "Senha deve conter: letra minúscula, maiúscula, número e caractere especial (@$!%*?&)")]
     public required string Password { get; set; }
 }

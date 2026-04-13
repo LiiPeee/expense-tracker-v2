@@ -1,4 +1,5 @@
-﻿using ExpenseTrackerV2.Application.Dtos.Request;
+﻿using System.Security.Claims;
+using ExpenseTrackerV2.Application.Dtos.Request;
 using ExpenseTrackerV2.Application.Service;
 using ExpenseTrackerV2.Core.Domain.Entities;
 using ExpenseTrackerV2.Core.Domain.Models.Request;
@@ -21,7 +22,9 @@ namespace ExpenseTrackerV2.WebApi.Controller
         [HttpPost("[action]")]
         public async Task CreateAsync([FromBody] CreateSubCategoryRequest request)
         {
-            await _subCategoryAppService.CreateAsync(request);
+            var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            await _subCategoryAppService.CreateAsync(accountId, request);
         }
 
         [Authorize(Roles = "Admin,User")]
@@ -29,6 +32,6 @@ namespace ExpenseTrackerV2.WebApi.Controller
         public async Task<IEnumerable<SubCategory>> GetAllAsync()
         {
             return await _subCategoryAppService.GetAllAsync();
-        }      
+        }
     }
 }

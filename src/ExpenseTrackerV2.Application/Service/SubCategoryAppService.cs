@@ -22,14 +22,15 @@ namespace ExpenseTrackerV2.Application.Service
             _unitOfWork = unitOfWork;
         }
 
-        public async Task CreateAsync(CreateSubCategoryRequest request)
+        public async Task CreateAsync(long accountId, CreateSubCategoryRequest request)
         {
             SubCategory subCategory = new SubCategory
             {
                 Name = request.Name,
                 CategoryId = request.CategoryId,
                 Description = request.Description,
-                IsActive = request.IsActive
+                IsActive = request.IsActive,
+                AccountId = accountId
             };
 
             await _subCategoryRepository.AddAsync(subCategory);

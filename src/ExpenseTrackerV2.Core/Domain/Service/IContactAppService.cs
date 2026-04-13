@@ -1,17 +1,12 @@
 ﻿using ExpenseTrackerV2.Application.Dtos.Request;
 using ExpenseTrackerV2.Core.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace ExpenseTrackerV2.Core.Domain.Service
+namespace ExpenseTrackerV2.Core.Domain.Service;
+
+public interface IContactAppService
 {
-    public interface IContactAppService
-    {
-        Task<Contact?> CreateAsync(ContactRequest request);
-        Task<List<Contact?>> GetAllsync();
-        Task DeleteContactAsync(string contactId);
-    }
+    Task<Contact?> CreateAsync(long accountId, ContactRequest request);
+    Task<List<Contact?>> GetAllsync(long accountId);
+    Task EditContactAsync(long accountId, ContactRequest request);
+    Task DeleteContactAsync(long accountId, string contactId);
 }

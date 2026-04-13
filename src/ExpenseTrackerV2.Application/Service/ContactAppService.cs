@@ -3,7 +3,7 @@ using ExpenseTrackerV2.Core.Domain.Entities;
 using ExpenseTrackerV2.Core.Domain.Repository;
 using ExpenseTrackerV2.Core.Domain.Service;
 using ExpenseTrackerV2.Core.Domain.UnitOfWork;
-using ExpenseTrackerV2.Core.Infrastructure.Repository;
+
 namespace ExpenseTrackerV2.Application.Service;
 
 public class ContactAppService : IContactAppService
@@ -18,12 +18,11 @@ public class ContactAppService : IContactAppService
         _addressRepository = addressRepository;
         _unitOfWork = unitOfWork;
     }
-    public async Task<Contact?> CreateAsync(ContactRequest request)
+
+    public async Task<Contact?> CreateAsync(long accountId, ContactRequest request)
     {
         try
         {
-            var accountId = long.Parse(Environment.GetEnvironmentVariable("ACCOUNT_ID"));
-
             Address address = new()
             {
                 City = request.City,
@@ -34,6 +33,7 @@ public class ContactAppService : IContactAppService
                 Street = request.Street,
                 ZipCode = request.ZipCode,
             };
+
             var typeContactId = EnumHelper.GetId(request.TypeContact);
 
             var savedAddress = await _addressRepository.AddAsync(address);
@@ -45,13 +45,13 @@ public class ContactAppService : IContactAppService
 
             Contact contact = new Contact()
             {
-                CreatedAt = DateTime.Now,
+                CreatedAt = DateTime.UtcNow,
                 Document = request.Document,
                 Email = request.Email,
                 IsActive = true,
                 Name = request.Name,
                 Phone = request.Phone,
-                AccountId = 2,
+                AccountId = accountId,
                 TypeContactId = typeContactId,
                 Address = listAddress
             };
@@ -60,36 +60,42 @@ public class ContactAppService : IContactAppService
 
             _unitOfWork.Commit();
 
-
             return savedContact;
         }
-        catch (Exception ex) 
-        { 
-            throw ex;
+        catch (Exception ex)
+        {
+            throw;
         }
     }
-    public async Task<List<Contact?>> GetAllsync()
+
+    public async Task<List<Contact?>> GetAllsync(long accountId)
     {
         try
         {
-            var accountId = long.Parse(Environment.GetEnvironmentVariable("ACCOUNT_ID"));
-
             var contact = await _contactRepository.GetByIdAccount(accountId);
             return contact;
         }
         catch (Exception ex)
         {
-            throw ex;
+            throw;
         }
     }
 
-    public async Task EditContactAsync(ContactRequest request)
+    public async Task EditContactAsync(long accountId, ContactRequest request)
     {
         try
         {
+            if (!long.TryParse(request.ContactId, out var id))
+                throw new ArgumentException("ContactId inválido");
+            var existingContact = await _contactRepository.GetByIdAsync(id);
+
+            if (existingContact == null || existingContact.AccountId != accountId)
+                throw new UnauthorizedAccessException("Contact not found or access denied");
+
             Contact contact = new Contact()
             {
-                Id = long.Parse(request.ContactId),
+                Id = id,
+                AccountId = accountId,
                 Document = request.Document,
                 Email = request.Email,
                 Name = request.Name,
@@ -99,22 +105,34 @@ public class ContactAppService : IContactAppService
             };
 
             await _contactRepository.UpdateAsync(contact);
+            _unitOfWork.Commit();
+
         }
         catch (Exception ex)
         {
-            throw ex;
+            throw;
         }
     }
-    public async Task DeleteContactAsync(string contactId)
+
+    public async Task DeleteContactAsync(long accountId, string contactId)
     {
         try
         {
-            var id = long.Parse(contactId);
+            if (!long.TryParse(contactId, out var id))
+                throw new ArgumentException("ContactId inválido");
+
+            var contact = await _contactRepository.GetByIdAsync(id);
+            if (contact == null || contact.AccountId != accountId)
+                throw new UnauthorizedAccessException("Contact not found or access denied");
+
             await _contactRepository.DeleteAsync(id);
+            _unitOfWork.Commit();
+
         }
         catch (Exception ex)
         {
-            throw ex;
+            _unitOfWork.Rollback();
+            throw;
         }
     }
 }

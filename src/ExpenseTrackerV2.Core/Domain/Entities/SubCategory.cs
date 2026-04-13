@@ -12,6 +12,7 @@ namespace ExpenseTrackerV2.Core.Domain.Entities
         public string? Description { get; set; }
         public bool IsActive { get; set; } = true;
         public long? CategoryId { get; set; }
+        public long AccountId { get; set; }
         public Category Category { get; set; }
     }
 }

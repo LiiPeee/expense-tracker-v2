@@ -20,7 +20,7 @@ namespace ExpenseTrackerV2.Infrastructure.Persistence.Repository
 
         public async Task<SubCategory?> GetByNameAsync(string name)
         {
-            var query = $"SELECT * FROM Category WHERE Name = @Name";
+            var query = $"SELECT * FROM SubCategory WHERE Name = @Name";
 
             if (_db._connection.State == ConnectionState.Open)
             {
