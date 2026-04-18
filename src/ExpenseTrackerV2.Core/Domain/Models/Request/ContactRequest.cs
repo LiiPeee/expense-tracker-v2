@@ -1,5 +1,4 @@
 using ExpenseTrackerV2.Core.Domain.Enum;
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 

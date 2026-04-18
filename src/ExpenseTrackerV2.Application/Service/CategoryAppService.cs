@@ -7,7 +7,7 @@ using ExpenseTrackerV2.Core.Domain.UnitOfWork;
 
 namespace ExpenseTrackerV2.Application.Service;
 
-public class CategoryAppService: ICategoryAppService
+public class CategoryAppService : ICategoryAppService
 {
 
     private readonly ICategoryRepository _categoryRepository;
@@ -31,7 +31,7 @@ public class CategoryAppService: ICategoryAppService
             IsActive = true,
         };
         await _categoryRepository.AddAsync(category);
-        
+
         _unitOfWork.Commit();
     }
 

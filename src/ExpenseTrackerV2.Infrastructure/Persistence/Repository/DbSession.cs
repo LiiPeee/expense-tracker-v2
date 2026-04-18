@@ -18,14 +18,14 @@ namespace ExpenseTrackerV2.Infrastructure.Persistence.Repository
         public DbSession(IConfiguration configuration)
         {
             _connectrionString = configuration.GetConnectionString("ExpenseTrackerV2");
-            _connection =  new SqlConnection(_connectrionString);
+            _connection = new SqlConnection(_connectrionString);
             _connection.Open();
         }
 
         public void Dispose()
         {
-          _transaction?.Dispose();
-           if (_connection.State == ConnectionState.Open)
+            _transaction?.Dispose();
+            if (_connection.State == ConnectionState.Open)
             {
                 _connection.Close();
             }

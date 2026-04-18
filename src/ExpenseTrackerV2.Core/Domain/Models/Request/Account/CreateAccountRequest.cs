@@ -12,6 +12,6 @@ public class CreateAccountRequest
     [EmailAddress]
     public required string Email { get; set; }
     [StringLength(20, MinimumLength = 8, ErrorMessage = "Senha deve ter entre 8 e 20 caracteres")]
-    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$", ErrorMessage = "Senha deve conter: letra minúscula, maiúscula, número e caractere especial (@$!%*?&)")]
+    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).{8,}$", ErrorMessage = "Senha deve conter: letra minúscula, maiúscula, número e caractere especial")]
     public required string Password { get; set; }
 }

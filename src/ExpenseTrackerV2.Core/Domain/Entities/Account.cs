@@ -14,6 +14,10 @@ public class Account : BaseEntity
     public string Role { get; set; } = "User";
     public string? RefreshToken { get; set; }
     public DateTimeOffset? RefreshTokenExpiryTime { get; set; }
+    public bool EmailVerified { get; set; } = false;
+    public DateTime? VerifiedAt { get; set; }
+    public string? EmailVerificationToken { get; set; }
+    public DateTime? EmailVerificationTokenExpiry { get; set; }
     public bool IsActive { get; set; } = true;
     public List<Transactions> Transactions { get; set; } = new();
 }

@@ -3,11 +3,6 @@ using ExpenseTrackerV2.Core.Domain.Models.Request;
 using ExpenseTrackerV2.Core.Domain.Service;
 using ExpenseTrackerV2.Core.Domain.UnitOfWork;
 using ExpenseTrackerV2.Core.Infrastructure.Repository;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ExpenseTrackerV2.Application.Service
 {

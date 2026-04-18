@@ -1,7 +1,9 @@
 ﻿using ExpenseTrackerV2.Core.Domain.Repository;
 using ExpenseTrackerV2.Core.Domain.UnitOfWork;
 using ExpenseTrackerV2.Core.Infrastructure.Repository;
+using ExpenseTrackerV2.Core.Infrastructure.Services;
 using ExpenseTrackerV2.Infrastructure.Persistence.Repository;
+using ExpenseTrackerV2.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -19,6 +21,7 @@ public static class InfrastructureDependencyWebApi
         .AddScoped<IAddressRepository, AddressRepository>()
         .AddScoped<IContactRepository, ContactRepository>()
         .AddScoped<ISubCategoryRepository, SubCategoryRepository>()
-        .AddScoped<IUnitOfWork, UnitOfWork>();
+        .AddScoped<IUnitOfWork, UnitOfWork>()
+        .AddScoped<IEmailService, EmailService>();
     }
 }

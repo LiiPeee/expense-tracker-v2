@@ -22,6 +22,23 @@ namespace ExpenseTrackerV2.WebApi.Controller
         }
 
         [HttpPost("[action]")]
+        public async Task<ActionResult<string>> VerifyTokenAsync([FromQuery] string token)
+        {
+            return Ok(await _accountAppService.VerifyEmailAsync(token));
+        }
+
+        [HttpPost("[action]")]
+        public async Task<ActionResult<string>> ResetPasswordAsync([FromBody] string token)
+        {
+            return Ok(await _accountAppService.VerifyEmailAsync(token));
+        }
+
+        [HttpPost("[action]")]
+        public async Task<ActionResult<string>> EmailVerifycationAsync([FromBody] string email)
+        {
+            return Ok(await _accountAppService.VerifyEmailAsync(email));
+        }
+        [HttpPost("[action]")]
         public async Task<ActionResult<TokenResponseDto?>> SignInAsync([FromBody] LoginRequest request)
         {
             var login = await _accountAppService.LoginAsync(request);

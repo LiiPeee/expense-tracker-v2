@@ -3,17 +3,16 @@ using ExpenseTrackerV2.Core.Domain.Entities;
 using ExpenseTrackerV2.Core.Domain.Repository;
 using ExpenseTrackerV2.Core.Domain.Service;
 using ExpenseTrackerV2.Core.Domain.UnitOfWork;
-using System;
 
 namespace ExpenseTrackerV2.Application.Service;
 
-public class AddressAppService: IAddressAppService
+public class AddressAppService : IAddressAppService
 {
     private readonly IAddressRepository _addressRepository;
     private readonly IContactRepository _contactRepository;
     public readonly IUnitOfWork _unitOfWork;
 
-    public  AddressAppService(IContactRepository contactRepository, IAddressRepository addressRepository, IUnitOfWork unitOfWork)
+    public AddressAppService(IContactRepository contactRepository, IAddressRepository addressRepository, IUnitOfWork unitOfWork)
     {
         _addressRepository = addressRepository;
         _contactRepository = contactRepository;

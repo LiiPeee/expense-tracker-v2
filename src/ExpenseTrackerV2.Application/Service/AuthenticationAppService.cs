@@ -4,6 +4,7 @@ using ExpenseTrackerV2.Core.Domain.Models.Request.Account;
 using ExpenseTrackerV2.Core.Domain.Repository;
 using ExpenseTrackerV2.Core.Domain.Service;
 using ExpenseTrackerV2.Core.Domain.UnitOfWork;
+using ExpenseTrackerV2.Core.Infrastructure.Services;
 using Microsoft.AspNet.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -13,35 +14,120 @@ using System.Security.Cryptography;
 using System.Text;
 namespace ExpenseTrackerV2.Application.Service;
 
-public class AuthenticationAppService(IAccountRepository accountRepository, IUnitOfWork unitOfWork, IConfiguration configuration) : IAuthenticationAppService
+public class AuthenticationAppService(IAccountRepository accountRepository, IEmailService emailService, IUnitOfWork unitOfWork, IConfiguration configuration) : IAuthenticationAppService
 {
     private readonly IAccountRepository _accountRepository = accountRepository;
+    private readonly IEmailService _emailService = emailService;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
-    public async Task<CreateAccountDto?> CreateAsync(CreateAccountRequest request)
+    public async Task<string?> CreateAsync(CreateAccountRequest request)
     {
-        if (await _accountRepository.GetByEmailAsync(request.Email) != null) throw new Exception("account is already exist");
-
-        var hashPassword = new PasswordHasher().HashPassword(request.Password);
-
-        var account = new Account
+        try
         {
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            Email = request.Email,
-            Password = hashPassword,
-            Balance = 0,
-        };
+            _unitOfWork.BeginTransaction();
 
-        var accountResponse = await _accountRepository.AddAsync(account);
+            if (await _accountRepository.GetByEmailAsync(request.Email) != null) throw new ArgumentException("account is already exist");
 
-        return new CreateAccountDto()
+            var hashPassword = new PasswordHasher().HashPassword(request.Password);
+
+            var account = new Account
+            {
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                Email = request.Email,
+                Password = hashPassword,
+                Balance = 0,
+                IsActive = false,
+                EmailVerified = false,
+                VerifiedAt = null,
+                EmailVerificationToken = GenerateVerificationCode(),
+                EmailVerificationTokenExpiry = DateTime.Now.AddHours(4)
+            };
+
+            await _accountRepository.AddAsync(account);
+
+            await _emailService.SendCodeToEmailAsync(account.Email, account.EmailVerificationToken);
+
+            _unitOfWork.Commit();
+
+            return "We send a verification email for you";
+        }
+        catch (Exception ex)
         {
-            Name = accountResponse.FirstName,
-            Email = accountResponse.Email
-        };
+            _unitOfWork.Rollback();
+            throw;
+        }
+    }
+    public async Task<string?> VerifyTokenAsync(string token)
+    {
+        try
+        {
+            _unitOfWork.BeginTransaction();
+
+            var account = await _accountRepository.GetByToken(token);
+
+            if (account is null) throw new ArgumentException("Invalid Token");
+
+            account.EmailVerified = true;
+            account.EmailVerificationToken = null;
+            account.VerifiedAt = DateTime.Now;
+            account.IsActive = true;
+
+            await _accountRepository.UpdateAsync(account);
+
+            _unitOfWork.Commit();
+
+            return "Email verified successfully";
+        }
+        catch (Exception ex)
+        {
+            _unitOfWork.Rollback();
+            throw;
+        }
     }
 
+    public async Task<string?> VerifyEmailAsync(string email)
+    {
+        try
+        {
+            var account = await _accountRepository.GetByEmailAsync(email);
+            if (account is null) throw new ArgumentException();
+
+            await _emailService.SendVerificationEmailAsync(email, GenerateRefreshToken());
+
+            return "Reset email sended";
+        }
+        catch (Exception ex)
+        { 
+            throw ex; 
+        }
+    }
+
+    public async Task<string?> ResetPasswordAsync(ResetPasswordRequest request)
+    {
+        try
+        {
+            _unitOfWork.BeginTransaction();
+
+            var account = await _accountRepository.GetByEmailAsync(request.Email);
+
+            if (account is null) throw new KeyNotFoundException("Account not found");
+
+            var hashPassword = new PasswordHasher().HashPassword(request.NewPassword);
+
+            account.Password = hashPassword;
+
+            await _accountRepository.UpdateAsync(account);
+
+            _unitOfWork.Commit();
+
+            return "Password Reseted";
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+    }
     public async Task<TokenResponseDto?> LoginAsync(LoginRequest request)
     {
         try
@@ -70,6 +156,7 @@ public class AuthenticationAppService(IAccountRepository accountRepository, IUni
     public async Task<string> LogOutAsync(long accountId)
     {
         var account = await _accountRepository.GetByIdAsync(accountId);
+        _unitOfWork.BeginTransaction();
 
         if (account != null)
         {
@@ -114,7 +201,6 @@ public class AuthenticationAppService(IAccountRepository accountRepository, IUni
                 new(ClaimTypes.Role, account.Role)
             };
 
-        var keyToken = configuration.GetValue<string>("Jwt:Token");
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration.GetValue<string>("Jwt:Token")));
 
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
@@ -140,6 +226,8 @@ public class AuthenticationAppService(IAccountRepository accountRepository, IUni
 
     private async Task<string> GenerateAndSaveRefreshToken(Account account)
     {
+        _unitOfWork.BeginTransaction();
+
         var refreshToken = GenerateRefreshToken();
 
         account.RefreshToken = refreshToken;
@@ -150,6 +238,11 @@ public class AuthenticationAppService(IAccountRepository accountRepository, IUni
         _unitOfWork.Commit();
         return refreshToken;
 
+    }
+    private static string GenerateVerificationCode()
+    {
+        Random random = new Random();
+        return random.Next(100000, 999999).ToString();
     }
 
     private async Task<Account?> ValidateRefreshTokenAsync(long accountId, string refreshToken)

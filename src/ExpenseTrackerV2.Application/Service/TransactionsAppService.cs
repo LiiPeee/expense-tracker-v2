@@ -44,7 +44,7 @@ public class TransactionsAppService : ITransactionsAppService
 
             if (category is null || contact is null)
             {
-                throw new Exception("we cannot find contact or category for this transaction");
+                throw new KeyNotFoundException("we cannot find contact or category for this transaction");
             }
 
             var subCategory = await _subCategoryRepository.GetByNameAsync(transactionRequest.SubCategoryName)
@@ -98,7 +98,7 @@ public class TransactionsAppService : ITransactionsAppService
             if (transaction is not null)
             {
                 var account = await _accountRepository.GetByIdAsync(transaction.AccountId)
-                    ?? throw new Exception("we cannot find account");
+                    ?? throw new KeyNotFoundException("we cannot find account");
 
                 if (paidTransactionRequest.Paid == true && transaction.Paid != true)
                 {
@@ -110,7 +110,7 @@ public class TransactionsAppService : ITransactionsAppService
 
                     if (!updatedTransaction)
                     {
-                        throw new Exception("something wrong happen");
+                        throw new ArgumentException("something wrong happen");
                     }
                     account.Balance = newBalance;
 
@@ -225,7 +225,7 @@ public class TransactionsAppService : ITransactionsAppService
         {
             var transactions = await _transactionRepository.FilterTransactionsByTypeAsync(accountId, type.ToString(), month, year);
 
-            if (transactions.Items.Count == 0) throw new Exception("we cannot find transactions");
+            if (transactions.Items.Count == 0) throw new KeyNotFoundException("we cannot find transactions");
 
             var filter = new List<FilterByMonthAndYearOutPut>();
 
@@ -276,7 +276,7 @@ public class TransactionsAppService : ITransactionsAppService
         {
             var transactions = await _transactionRepository.FilterTransactionsByCategoryAsync(accountId, categoryName.ToString(), type.ToString(), month, year);
 
-            if (transactions.Items.Count == 0) throw new Exception("we cannot find transactions");
+            if (transactions.Items.Count == 0) throw new KeyNotFoundException("we cannot find transactions");
 
             var filter = new List<FilterByMonthAndYearOutPut>();
 
@@ -326,7 +326,7 @@ public class TransactionsAppService : ITransactionsAppService
         {
             var transactions = await _transactionRepository.FilterByMonthAndYearAsync(accountId, month, year, pageNumber);
 
-            if (transactions.Items.Count == 0) throw new Exception("we cannot find transactions");
+            if (transactions.Items.Count == 0) throw new KeyNotFoundException("we cannot find transactions");
 
             var filter = new List<FilterByMonthAndYearOutPut>();
 
