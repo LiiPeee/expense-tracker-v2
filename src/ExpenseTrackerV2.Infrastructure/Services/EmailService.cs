@@ -74,7 +74,7 @@ public class EmailService(IConfiguration configuration) : IEmailService
     }
     public async Task SendVerificationEmailAsync(string email, string token)
     {
-        var url = $"{_config["FrontEndUrl"]}/reset-password/{email}";
+        var url = $"{_config["FrontEndUrl"]}/reset-password?token={token}";
 
         var htmlBody = $@"
             <!DOCTYPE html>

@@ -73,19 +73,24 @@ Execute: `docker-compose up -d`
 
 ### 2. Criar o Banco de Dados
 
-Execute o seguinte script SQL para criar o banco de dados:
+Crie o banco com este comando isolado:
 
 ```sql
 CREATE DATABASE ExpenseTracker;
-GO
+```
 
+Depois, abra uma nova consulta conectada ao banco `ExpenseTracker` e execute os scripts de tabelas abaixo.
+
+Se o seu cliente SQL permitir trocar o contexto da conexão por comando, você pode executar antes:
+
+```sql
 USE ExpenseTracker;
-GO
 ```
 
 ### 3. Estrutura das Tabelas
 
 #### Tabela: Account
+
 ```sql
 CREATE TABLE Account (
     Id BIGINT PRIMARY KEY IDENTITY(1,1),
@@ -104,6 +109,7 @@ CREATE TABLE Account (
 ```
 
 #### Tabela: Category
+
 ```sql
 CREATE TABLE Category (
     Id BIGINT PRIMARY KEY IDENTITY(1,1),
@@ -132,6 +138,7 @@ INSERT INTO Category (Name, Description, IsActive) VALUES
 ```
 
 #### Tabela: SubCategory
+
 ```sql
 CREATE TABLE SubCategory (
     Id BIGINT PRIMARY KEY IDENTITY(1,1),
@@ -146,6 +153,7 @@ CREATE TABLE SubCategory (
 ```
 
 #### Tabela: TypeContact
+
 ```sql
 CREATE TABLE TypeContact (
     Id BIGINT PRIMARY KEY IDENTITY(1,1),
@@ -159,6 +167,7 @@ INSERT INTO TypeContact (Name) VALUES ('PERSONAL'), ('BUSINESS');
 ```
 
 #### Tabela: Contact
+
 ```sql
 CREATE TABLE Contact (
     Id BIGINT PRIMARY KEY IDENTITY(1,1),
@@ -177,6 +186,7 @@ CREATE TABLE Contact (
 ```
 
 #### Tabela: Address
+
 ```sql
 CREATE TABLE Address (
     Id BIGINT PRIMARY KEY IDENTITY(1,1),
@@ -194,6 +204,7 @@ CREATE TABLE Address (
 ```
 
 #### Tabela: TypeTransaction
+
 ```sql
 CREATE TABLE TypeTransaction (
     Id BIGINT PRIMARY KEY IDENTITY(1,1),
@@ -207,6 +218,7 @@ INSERT INTO TypeTransaction (Name) VALUES ('EXPENSE'), ('INCOME');
 ```
 
 #### Tabela: Recurrence
+
 ```sql
 CREATE TABLE Recurrence (
     Id BIGINT PRIMARY KEY IDENTITY(1,1),
@@ -220,6 +232,7 @@ INSERT INTO Recurrence (Name) VALUES ('NONE'), ('DAILY'), ('BiWeekly'), ('Monthl
 ```
 
 #### Tabela: Transactions
+
 ```sql
 CREATE TABLE Transactions (
     Id BIGINT PRIMARY KEY IDENTITY(1,1),
@@ -244,135 +257,146 @@ CREATE TABLE Transactions (
     FOREIGN KEY (SubCategoryId) REFERENCES SubCategory(Id),
     FOREIGN KEY (RecurrenceId) REFERENCES Recurrence(Id),
     FOREIGN KEY (TypeTransactionId) REFERENCES TypeTransaction(Id)
+);
+
+CREATE TABLE ResetPassowrd(
+    Id BIGINT PRIMARY KEY IDENTITY(1,1),
+    AccountId BIGINT NOT NULL,
+    HashedToken VARCHAR(100) NULL,
+   	FOREIGN KEY (AccountId) REFERENCES Account(Id)
 );
 ```
 
 ### 4. Script Completo de Criação
 
-Execute este script completo no SQL Server Management Studio ou Azure Data Studio:
+Use os comandos abaixo em duas etapas para evitar erros em clientes que não suportam `GO`.
+
+#### Etapa 1: criar o banco
+
+Execute este comando isoladamente:
 
 ```sql
-USE master;
-GO
+IF DB_ID('ExpenseTracker') IS NULL
+BEGIN
+  CREATE DATABASE ExpenseTracker;
+END;
+```
 
-CREATE DATABASE ExpenseTracker;
-GO
+#### Etapa 2: criar tabelas e dados iniciais
 
-USE ExpenseTracker;
-GO
+Abra uma nova consulta já conectada ao banco `ExpenseTracker` e execute:
 
--- Criar todas as tabelas na ordem correta
+```sql
 CREATE TABLE Account (
-    Id BIGINT PRIMARY KEY IDENTITY(1,1),
-    FirstName NVARCHAR(100) NOT NULL,
-    LastName NVARCHAR(100) NOT NULL,
-    Email NVARCHAR(255) NOT NULL UNIQUE,
-    Password NVARCHAR(MAX) NOT NULL,
-    Balance DECIMAL(18,2) NOT NULL DEFAULT 0,
-    Role NVARCHAR(50) NOT NULL DEFAULT 'User',
-    RefreshToken NVARCHAR(MAX) NULL,
-    RefreshTokenExpiryTime DATETIMEOFFSET NULL,
-    IsActive BIT NOT NULL DEFAULT 1,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL
+  Id BIGINT PRIMARY KEY IDENTITY(1,1),
+  FirstName NVARCHAR(100) NOT NULL,
+  LastName NVARCHAR(100) NOT NULL,
+  Email NVARCHAR(255) NOT NULL UNIQUE,
+  Password NVARCHAR(MAX) NOT NULL,
+  Balance DECIMAL(18,2) NOT NULL DEFAULT 0,
+  Role NVARCHAR(50) NOT NULL DEFAULT 'User',
+  RefreshToken NVARCHAR(MAX) NULL,
+  RefreshTokenExpiryTime DATETIMEOFFSET NULL,
+  IsActive BIT NOT NULL DEFAULT 1,
+  CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+  UpdatedAt DATETIME2 NULL
 );
 
 CREATE TABLE Category (
-    Id BIGINT PRIMARY KEY IDENTITY(1,1),
-    Name NVARCHAR(100) NOT NULL,
-    Description NVARCHAR(MAX) NULL,
-    IsActive BIT NOT NULL DEFAULT 1,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL
+  Id BIGINT PRIMARY KEY IDENTITY(1,1),
+  Name NVARCHAR(100) NOT NULL,
+  Description NVARCHAR(MAX) NULL,
+  IsActive BIT NOT NULL DEFAULT 1,
+  CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+  UpdatedAt DATETIME2 NULL
 );
 
 CREATE TABLE SubCategory (
-    Id BIGINT PRIMARY KEY IDENTITY(1,1),
-    Name NVARCHAR(100) NOT NULL,
-    Description NVARCHAR(MAX) NULL,
-    IsActive BIT NOT NULL DEFAULT 1,
-    CategoryId BIGINT NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL,
-    FOREIGN KEY (CategoryId) REFERENCES Category(Id)
+  Id BIGINT PRIMARY KEY IDENTITY(1,1),
+  Name NVARCHAR(100) NOT NULL,
+  Description NVARCHAR(MAX) NULL,
+  IsActive BIT NOT NULL DEFAULT 1,
+  CategoryId BIGINT NULL,
+  CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+  UpdatedAt DATETIME2 NULL,
+  FOREIGN KEY (CategoryId) REFERENCES Category(Id)
 );
 
 CREATE TABLE TypeContact (
-    Id BIGINT PRIMARY KEY IDENTITY(1,1),
-    Name NVARCHAR(100) NOT NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL
+  Id BIGINT PRIMARY KEY IDENTITY(1,1),
+  Name NVARCHAR(100) NOT NULL,
+  CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+  UpdatedAt DATETIME2 NULL
 );
 
 CREATE TABLE Contact (
-    Id BIGINT PRIMARY KEY IDENTITY(1,1),
-    Name NVARCHAR(200) NOT NULL,
-    Email NVARCHAR(255) NULL,
-    Phone NVARCHAR(20) NULL,
-    Document NVARCHAR(50) NULL,
-    IsActive BIT NOT NULL DEFAULT 1,
-    AccountId BIGINT NOT NULL,
-    TypeContactId BIGINT NOT NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL,
-    FOREIGN KEY (AccountId) REFERENCES Account(Id),
-    FOREIGN KEY (TypeContactId) REFERENCES TypeContact(Id)
+  Id BIGINT PRIMARY KEY IDENTITY(1,1),
+  Name NVARCHAR(200) NOT NULL,
+  Email NVARCHAR(255) NULL,
+  Phone NVARCHAR(20) NULL,
+  Document NVARCHAR(50) NULL,
+  IsActive BIT NOT NULL DEFAULT 1,
+  AccountId BIGINT NOT NULL,
+  TypeContactId BIGINT NOT NULL,
+  CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+  UpdatedAt DATETIME2 NULL,
+  FOREIGN KEY (AccountId) REFERENCES Account(Id),
+  FOREIGN KEY (TypeContactId) REFERENCES TypeContact(Id)
 );
 
 CREATE TABLE Address (
-    Id BIGINT PRIMARY KEY IDENTITY(1,1),
-    Street NVARCHAR(200) NOT NULL,
-    City NVARCHAR(100) NOT NULL,
-    State NVARCHAR(50) NOT NULL,
-    ZipCode NVARCHAR(20) NOT NULL,
-    Country NVARCHAR(100) NOT NULL,
-    IsPrimary BIT NOT NULL DEFAULT 0,
-    ContactId BIGINT NOT NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL,
-    FOREIGN KEY (ContactId) REFERENCES Contact(Id)
+  Id BIGINT PRIMARY KEY IDENTITY(1,1),
+  Street NVARCHAR(200) NOT NULL,
+  City NVARCHAR(100) NOT NULL,
+  State NVARCHAR(50) NOT NULL,
+  ZipCode NVARCHAR(20) NOT NULL,
+  Country NVARCHAR(100) NOT NULL,
+  IsPrimary BIT NOT NULL DEFAULT 0,
+  ContactId BIGINT NOT NULL,
+  CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+  UpdatedAt DATETIME2 NULL,
+  FOREIGN KEY (ContactId) REFERENCES Contact(Id)
 );
 
 CREATE TABLE TypeTransaction (
-    Id BIGINT PRIMARY KEY IDENTITY(1,1),
-    Name NVARCHAR(100) NOT NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL
+  Id BIGINT PRIMARY KEY IDENTITY(1,1),
+  Name NVARCHAR(100) NOT NULL,
+  CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+  UpdatedAt DATETIME2 NULL
 );
 
 CREATE TABLE Recurrence (
-    Id BIGINT PRIMARY KEY IDENTITY(1,1),
-    Name NVARCHAR(50) NOT NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL
+  Id BIGINT PRIMARY KEY IDENTITY(1,1),
+  Name NVARCHAR(50) NOT NULL,
+  CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+  UpdatedAt DATETIME2 NULL
 );
 
 CREATE TABLE Transactions (
-    Id BIGINT PRIMARY KEY IDENTITY(1,1),
-    Amount DECIMAL(18,2) NOT NULL,
-    Name NVARCHAR(200) NOT NULL,
-    Description NVARCHAR(MAX) NOT NULL,
-    Paid BIT NOT NULL DEFAULT 0,
-    NumberOfInstallment BIGINT NULL,
-    DateOfInstallment DATETIME2 NULL,
-    QuantityInstallment NVARCHAR(20) NULL,
-    RecurrenceId BIGINT NOT NULL,
-    ContactId BIGINT NULL,
-    AccountId BIGINT NOT NULL,
-    CategoryId BIGINT NOT NULL,
-    TypeTransactionId BIGINT NOT NULL,
-    SubCategoryId BIGINT NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL,
-    FOREIGN KEY (AccountId) REFERENCES Account(Id),
-    FOREIGN KEY (CategoryId) REFERENCES Category(Id),
-    FOREIGN KEY (ContactId) REFERENCES Contact(Id),
-    FOREIGN KEY (SubCategoryId) REFERENCES SubCategory(Id),
-    FOREIGN KEY (RecurrenceId) REFERENCES Recurrence(Id),
-    FOREIGN KEY (TypeTransactionId) REFERENCES TypeTransaction(Id)
+  Id BIGINT PRIMARY KEY IDENTITY(1,1),
+  Amount DECIMAL(18,2) NOT NULL,
+  Name NVARCHAR(200) NOT NULL,
+  Description NVARCHAR(MAX) NOT NULL,
+  Paid BIT NOT NULL DEFAULT 0,
+  NumberOfInstallment BIGINT NULL,
+  DateOfInstallment DATETIME2 NULL,
+  QuantityInstallment NVARCHAR(20) NULL,
+  RecurrenceId BIGINT NOT NULL,
+  ContactId BIGINT NULL,
+  AccountId BIGINT NOT NULL,
+  CategoryId BIGINT NOT NULL,
+  TypeTransactionId BIGINT NOT NULL,
+  SubCategoryId BIGINT NULL,
+  CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+  UpdatedAt DATETIME2 NULL,
+  FOREIGN KEY (AccountId) REFERENCES Account(Id),
+  FOREIGN KEY (CategoryId) REFERENCES Category(Id),
+  FOREIGN KEY (ContactId) REFERENCES Contact(Id),
+  FOREIGN KEY (SubCategoryId) REFERENCES SubCategory(Id),
+  FOREIGN KEY (RecurrenceId) REFERENCES Recurrence(Id),
+  FOREIGN KEY (TypeTransactionId) REFERENCES TypeTransaction(Id)
 );
 
--- Inserir dados iniciais
 INSERT INTO Category (Name, Description, IsActive) VALUES
 ('ALIMENTACAO', 'Gastos com alimentação', 1),
 ('CONFORTO', 'Gastos com conforto', 1),
@@ -391,8 +415,6 @@ INSERT INTO Category (Name, Description, IsActive) VALUES
 INSERT INTO TypeContact (Name) VALUES ('PERSONAL'), ('BUSINESS');
 INSERT INTO TypeTransaction (Name) VALUES ('EXPENSE'), ('INCOME');
 INSERT INTO Recurrence (Name) VALUES ('NONE'), ('DAILY'), ('BiWeekly'), ('Monthly');
-
-GO
 ```
 
 ## 🔧 Instalação
@@ -452,6 +474,7 @@ dotnet run
 ```
 
 A API estará disponível em:
+
 - **HTTPS**: https://localhost:7xxx
 - **HTTP**: http://localhost:5xxx
 - **Swagger**: https://localhost:7xxx/swagger
@@ -504,11 +527,13 @@ expense-tracker-v2/
 ## 🔌 API Endpoints
 
 ### Autenticação
+
 - `POST /api/auth/register` - Registrar novo usuário
 - `POST /api/auth/login` - Login
 - `POST /api/auth/refresh-token` - Renovar token
 
 ### Transações
+
 - `GET /api/transactions` - Listar transações
 - `POST /api/transactions` - Criar transação
 - `PUT /api/transactions/{id}/paid` - Marcar como pago
@@ -521,18 +546,21 @@ expense-tracker-v2/
 - `GET /api/transactions/income` - Total de receitas do mês
 
 ### Categorias
+
 - `GET /api/category` - Listar categorias
 - `POST /api/category` - Criar categoria
 - `PUT /api/category/{id}` - Atualizar categoria
 - `DELETE /api/category/{id}` - Deletar categoria
 
 ### SubCategorias
+
 - `GET /api/subcategory` - Listar subcategorias
 - `POST /api/subcategory` - Criar subcategoria
 - `PUT /api/subcategory/{id}` - Atualizar subcategoria
 - `DELETE /api/subcategory/{id}` - Deletar subcategoria
 
 ### Contatos
+
 - `GET /api/contact` - Listar contatos
 - `POST /api/contact` - Criar contato
 - `PUT /api/contact/{id}` - Atualizar contato
@@ -540,11 +568,12 @@ expense-tracker-v2/
 
 ## 🔐 Autenticação
 
-A API utiliza JWT (JSON Web Token) para autenticação. 
+A API utiliza JWT (JSON Web Token) para autenticação.
 
 ### Como usar:
 
 1. **Registre um usuário** em `/api/auth/register`
+
    ```json
    {
      "firstName": "João",
@@ -555,6 +584,7 @@ A API utiliza JWT (JSON Web Token) para autenticação.
    ```
 
 2. **Faça login** em `/api/auth/login`
+
    ```json
    {
      "email": "joao@email.com",
@@ -570,6 +600,7 @@ A API utiliza JWT (JSON Web Token) para autenticação.
    ```
 
 ### No Swagger:
+
 1. Clique em **Authorize** (cadeado no canto superior direito)
 2. Digite: `Bearer {seu-token-jwt}`
 3. Clique em **Authorize**
@@ -625,16 +656,19 @@ dotnet test
 ## 🐛 Troubleshooting
 
 ### Erro de conexão com banco de dados
+
 - Verifique se o SQL Server está rodando
 - Confirme a connection string no `appsettings.json`
 - Teste a conexão com SQL Server Management Studio
 
 ### Erro de autenticação JWT
+
 - Verifique se o token JWT no `appsettings.json` é longo e seguro
 - Confirme que está enviando o header `Authorization: Bearer {token}`
 - Verifique se o token não expirou
 
 ### Erro ao criar transação
+
 - Certifique-se de que a categoria existe no banco de dados
 - Verifique se o contato foi criado previamente
 - Confirme que todos os campos obrigatórios estão preenchidos
@@ -646,6 +680,7 @@ Este projeto está sob a licença MIT.
 ## 👤 Autor
 
 **Luiz Cruz**
+
 - GitHub: [@LiiPeee](https://github.com/LiiPeee)
 
 ## 🤝 Contribuindo

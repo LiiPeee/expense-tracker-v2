@@ -14,8 +14,6 @@ public class AccountRepository : RepositoryBase<Account>, IAccountRepository
     {
         var query = @"SELECT * FROM Account WHERE Email = @Email";
 
-        var parameters = new DynamicParameters();
-
         if (_db._connection.State != ConnectionState.Open)
         {
             throw new Exception("connection lost");

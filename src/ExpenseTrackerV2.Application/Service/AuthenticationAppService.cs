@@ -4,6 +4,8 @@ using ExpenseTrackerV2.Core.Domain.Models.Request.Account;
 using ExpenseTrackerV2.Core.Domain.Repository;
 using ExpenseTrackerV2.Core.Domain.Service;
 using ExpenseTrackerV2.Core.Domain.UnitOfWork;
+using ExpenseTrackerV2.Core.Domain.Utils;
+using ExpenseTrackerV2.Core.Infrastructure.Repository;
 using ExpenseTrackerV2.Core.Infrastructure.Services;
 using Microsoft.AspNet.Identity;
 using Microsoft.Extensions.Configuration;
@@ -14,12 +16,12 @@ using System.Security.Cryptography;
 using System.Text;
 namespace ExpenseTrackerV2.Application.Service;
 
-public class AuthenticationAppService(IAccountRepository accountRepository, IEmailService emailService, IUnitOfWork unitOfWork, IConfiguration configuration) : IAuthenticationAppService
+public class AuthenticationAppService(IAccountRepository accountRepository,IResetPasswordRepository resetPasswordRepository, IEmailService emailService, IUnitOfWork unitOfWork, IConfiguration configuration) : IAuthenticationAppService
 {
     private readonly IAccountRepository _accountRepository = accountRepository;
     private readonly IEmailService _emailService = emailService;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
-
+    private readonly IResetPasswordRepository _resetPasswordRepository = resetPasswordRepository;
     public async Task<string?> CreateAsync(CreateAccountRequest request)
     {
         try
@@ -90,10 +92,28 @@ public class AuthenticationAppService(IAccountRepository accountRepository, IEma
     {
         try
         {
+            _unitOfWork.BeginTransaction();
+
             var account = await _accountRepository.GetByEmailAsync(email);
             if (account is null) throw new ArgumentException();
 
-            await _emailService.SendVerificationEmailAsync(email, GenerateRefreshToken());
+            string passwordResetToken = PasswordHelper.GenerateRefreshToken();
+
+            var combinedToken = $"{passwordResetToken}|{account.Id}";
+            var encryptedToken = PasswordHelper.Encrypt(combinedToken);
+
+            var resetPassword = new ResetPassword()
+            {
+                AccoountId = account.Id,
+                HashedToken = passwordResetToken,
+                ExpireAt = DateTime.UtcNow.AddHours(1)
+            };
+
+            await  _resetPasswordRepository.AddAsync(resetPassword);
+
+            await _emailService.SendVerificationEmailAsync(email, encryptedToken);
+
+            _unitOfWork.Commit();
 
             return "Reset email sended";
         }
@@ -109,9 +129,25 @@ public class AuthenticationAppService(IAccountRepository accountRepository, IEma
         {
             _unitOfWork.BeginTransaction();
 
-            var account = await _accountRepository.GetByEmailAsync(request.Email);
+            var decryptedToken = PasswordHelper.Decrypt(request.Token);
+
+            var tokenParts = decryptedToken.Split('|');
+
+            if (tokenParts.Length != 2) 
+            {
+                 throw new KeyNotFoundException("Invalid Token");
+            }
+
+            var passwordResetToken = tokenParts[0];
+            var accountId = long.Parse(tokenParts[1]);
+
+            var account = await _accountRepository.GetByIdAsync(accountId);
 
             if (account is null) throw new KeyNotFoundException("Account not found");
+
+            var resetPassword = await _resetPasswordRepository.GetByAccountIdAsync(accountId);
+            
+            if(resetPassword is null || resetPassword.ExpireAt < DateTime.UtcNow)
 
             var hashPassword = new PasswordHasher().HashPassword(request.NewPassword);
 
@@ -216,19 +252,13 @@ public class AuthenticationAppService(IAccountRepository accountRepository, IEma
         return new JwtSecurityTokenHandler().WriteToken(tokenDescripton);
     }
 
-    private string GenerateRefreshToken()
-    {
-        var randomNumber = new byte[32];
-        using var rng = RandomNumberGenerator.Create();
-        rng.GetBytes(randomNumber);
-        return Convert.ToBase64String(randomNumber);
-    }
+ 
 
     private async Task<string> GenerateAndSaveRefreshToken(Account account)
     {
         _unitOfWork.BeginTransaction();
 
-        var refreshToken = GenerateRefreshToken();
+        var refreshToken = PasswordHelper.GenerateRefreshToken();
 
         account.RefreshToken = refreshToken;
         account.RefreshTokenExpiryTime = DateTime.UtcNow.AddMinutes(configuration.GetValue<int>("Jwt:RefreshTokenExpirationMinutes"));

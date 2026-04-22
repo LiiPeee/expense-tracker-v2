@@ -28,9 +28,9 @@ namespace ExpenseTrackerV2.WebApi.Controller
         }
 
         [HttpPost("[action]")]
-        public async Task<ActionResult<string>> ResetPasswordAsync([FromBody] string token)
+        public async Task<ActionResult<string>> ResetPasswordAsync([FromBody] string newPassword, [FromBody] string token)
         {
-            return Ok(await _accountAppService.VerifyEmailAsync(token));
+            return Ok(await _accountAppService.VerifyEmailAsync(newPassword));
         }
 
         [HttpPost("[action]")]
