@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ExpenseTrackerV2.Core.Domain.Models.Request.Account;
 
-public class CreateAccountRequest
+public class CreateAccountRequestDto
 {
     [StringLength(50)]
     public required string FirstName { get; set; }

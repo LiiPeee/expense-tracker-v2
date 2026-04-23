@@ -2,7 +2,7 @@
 using ExpenseTrackerV2.Core.Domain.Models.Output;
 using ExpenseTrackerV2.Core.Domain.Models.Request.Account;
 using ExpenseTrackerV2.Core.Domain.Service;
-using ExpenseTrackerV2.WebApi.Models;
+using ExpenseTrackerV2.WebApi.Models.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -16,21 +16,33 @@ namespace ExpenseTrackerV2.WebApi.Controller
         private readonly IAuthenticationAppService _accountAppService = accountAppService;
 
         [HttpPost("[action]")]
-        public async Task<ActionResult<CreateAccountDto>> SignUpAsync([FromBody] CreateAccountRequest request)
+        public async Task<ActionResult<CreateAccountDto>> SignUpAsync([FromBody] CreateAccountRequestDto request)
         {
-            return Ok(await _accountAppService.CreateAsync(request));
+            return Ok(await _accountAppService.SignUpAsync(request));
         }
 
         [HttpPost("[action]")]
-        public async Task<ActionResult<string>> VerifyTokenAsync([FromQuery] string token)
+        public async Task<ActionResult<string>> VerifyTokenAsync([FromQuery] VerifyTokenRequest request)
         {
-            return Ok(await _accountAppService.VerifyEmailAsync(token));
+            var requestDto = new VerifyTokenRequestDto()
+            {
+                Email = request.Email,
+                Token = request.Token
+            };
+
+            return Ok(await _accountAppService.VerifyTokenAsync(requestDto));
         }
 
         [HttpPost("[action]")]
-        public async Task<ActionResult<string>> ResetPasswordAsync([FromBody] string newPassword, [FromBody] string token)
+        public async Task<ActionResult<string>> ResetPasswordAsync([FromBody] ResetPasswordRequest request)
         {
-            return Ok(await _accountAppService.VerifyEmailAsync(newPassword));
+            var resetPassword = new ResetPasswordRequestDto()
+            {
+                Token = request.Token,
+                NewPassword = request.NewPassword
+            };
+
+            return Ok(await _accountAppService.ResetPasswordAsync(resetPassword));
         }
 
         [HttpPost("[action]")]
@@ -39,9 +51,9 @@ namespace ExpenseTrackerV2.WebApi.Controller
             return Ok(await _accountAppService.VerifyEmailAsync(email));
         }
         [HttpPost("[action]")]
-        public async Task<ActionResult<TokenResponseDto?>> SignInAsync([FromBody] LoginRequest request)
+        public async Task<ActionResult<TokenResponseDto?>> SignInAsync([FromBody] LoginRequestDto request)
         {
-            var login = await _accountAppService.LoginAsync(request);
+            var login = await _accountAppService.SignInAsync(request);
             if (login == null)
             {
                 return Unauthorized();
@@ -52,7 +64,7 @@ namespace ExpenseTrackerV2.WebApi.Controller
 
         [HttpPost("[action]")]
         [Authorize(Roles = "User")]
-        public async Task<ActionResult<TokenResponseDto?>> RefreshTokenAsync(RefreshTokenAccountRequestDto request)
+        public async Task<ActionResult<TokenResponseDto?>> RefreshTokenAsync(RefreshTokenAccountRequest request)
         {
             var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 

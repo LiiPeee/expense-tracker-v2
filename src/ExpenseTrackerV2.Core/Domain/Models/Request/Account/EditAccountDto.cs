@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ExpenseTrackerV2.Core.Domain.Models.Request.Account
 {
-    public class EditAccount
+    public class EditAccountDto
     {
         public required string FirstName { get; set; }
         public required string LastName { get; set; }

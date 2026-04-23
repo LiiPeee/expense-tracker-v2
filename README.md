@@ -265,6 +265,15 @@ CREATE TABLE ResetPassowrd(
     HashedToken VARCHAR(100) NULL,
    	FOREIGN KEY (AccountId) REFERENCES Account(Id)
 );
+CREATE TABLE  ResetPassword(
+    Id BIGINT PRIMARY KEY IDENTITY(1,1),
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NULL,
+    AccountId BIGINT NOT NULL,
+    HashedToken VARCHAR(100),
+   	ExpireAt DATETIME NULL,
+);
+
 ```
 
 ### 4. Script Completo de Criação

@@ -1,10 +1,11 @@
-using ExpenseTrackerV2.Application;
-using ExpenseTrackerV2.Infrastructure;
+using AspNetCoreRateLimit;
 using DotNetEnv;
+using ExpenseTrackerV2.Application;
+using ExpenseTrackerV2.Core.Domain.Options;
+using ExpenseTrackerV2.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using AspNetCoreRateLimit;
 
 var builder = WebApplication.CreateBuilder(args);
 var appSettings = builder.Configuration.SetBasePath(Directory.GetCurrentDirectory())
@@ -43,6 +44,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddMemoryCache();
 builder.Services.Configure<IpRateLimitPolicies>(builder.Configuration.GetSection("IpRateLimitPolicies"));
 builder.Services.AddInMemoryRateLimiting();
+builder.Services.Configure<EncryptionOptions>(builder.Configuration);
 builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
 builder.Services.Configure<IpRateLimitOptions>(options =>
 {
@@ -83,9 +85,9 @@ app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-if (app.Environment.IsProduction())
+if (app.Environment.IsDevelopment())
 {
-    app.UseHsts();
+    app.UseDeveloperExceptionPage();
 }
 
 app.UseCors("FrontendDev");

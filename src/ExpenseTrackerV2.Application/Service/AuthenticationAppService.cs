@@ -16,18 +16,23 @@ using System.Security.Cryptography;
 using System.Text;
 namespace ExpenseTrackerV2.Application.Service;
 
-public class AuthenticationAppService(IAccountRepository accountRepository,IResetPasswordRepository resetPasswordRepository, IEmailService emailService, IUnitOfWork unitOfWork, IConfiguration configuration) : IAuthenticationAppService
+public class AuthenticationAppService(IAccountRepository accountRepository,
+    IResetPasswordRepository resetPasswordRepository,
+    IPasswordHelper passwordHelper, 
+    IEmailService emailService, 
+    IUnitOfWork unitOfWork, 
+    IConfiguration configuration) : IAuthenticationAppService
 {
     private readonly IAccountRepository _accountRepository = accountRepository;
     private readonly IEmailService _emailService = emailService;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly IPasswordHelper _passwordHelper = passwordHelper;
+
     private readonly IResetPasswordRepository _resetPasswordRepository = resetPasswordRepository;
-    public async Task<string?> CreateAsync(CreateAccountRequest request)
+    public async Task<string?> SignUpAsync(CreateAccountRequestDto request)
     {
         try
         {
-            _unitOfWork.BeginTransaction();
-
             if (await _accountRepository.GetByEmailAsync(request.Email) != null) throw new ArgumentException("account is already exist");
 
             var hashPassword = new PasswordHasher().HashPassword(request.Password);
@@ -46,6 +51,7 @@ public class AuthenticationAppService(IAccountRepository accountRepository,IRese
                 EmailVerificationTokenExpiry = DateTime.Now.AddHours(4)
             };
 
+            _unitOfWork.BeginTransaction();
             await _accountRepository.AddAsync(account);
 
             await _emailService.SendCodeToEmailAsync(account.Email, account.EmailVerificationToken);
@@ -60,13 +66,11 @@ public class AuthenticationAppService(IAccountRepository accountRepository,IRese
             throw;
         }
     }
-    public async Task<string?> VerifyTokenAsync(string token)
+    public async Task<string?> VerifyTokenAsync(VerifyTokenRequestDto request)
     {
         try
         {
-            _unitOfWork.BeginTransaction();
-
-            var account = await _accountRepository.GetByToken(token);
+            var account = await _accountRepository.GetByEmailAsync(request.Email);
 
             if (account is null) throw new ArgumentException("Invalid Token");
 
@@ -75,11 +79,12 @@ public class AuthenticationAppService(IAccountRepository accountRepository,IRese
             account.VerifiedAt = DateTime.Now;
             account.IsActive = true;
 
+            _unitOfWork.BeginTransaction();
             await _accountRepository.UpdateAsync(account);
 
             _unitOfWork.Commit();
 
-            return "Email verified successfully";
+            return "Your email has been verified successfully";
         }
         catch (Exception ex)
         {
@@ -92,24 +97,25 @@ public class AuthenticationAppService(IAccountRepository accountRepository,IRese
     {
         try
         {
-            _unitOfWork.BeginTransaction();
 
             var account = await _accountRepository.GetByEmailAsync(email);
             if (account is null) throw new ArgumentException();
 
-            string passwordResetToken = PasswordHelper.GenerateRefreshToken();
+            string passwordResetToken = _passwordHelper.GenerateRefreshToken();
 
             var combinedToken = $"{passwordResetToken}|{account.Id}";
-            var encryptedToken = PasswordHelper.Encrypt(combinedToken);
+            var encryptedToken = _passwordHelper.Encrypt(combinedToken);
 
             var resetPassword = new ResetPassword()
             {
-                AccoountId = account.Id,
+                AccountId = account.Id,
                 HashedToken = passwordResetToken,
-                ExpireAt = DateTime.UtcNow.AddHours(1)
+                ExpireAt = DateTime.UtcNow.AddHours(1),
+                CreatedAt = DateTime.UtcNow,
             };
+            _unitOfWork.BeginTransaction();
 
-            await  _resetPasswordRepository.AddAsync(resetPassword);
+            await _resetPasswordRepository.AddAsync(resetPassword);
 
             await _emailService.SendVerificationEmailAsync(email, encryptedToken);
 
@@ -123,13 +129,12 @@ public class AuthenticationAppService(IAccountRepository accountRepository,IRese
         }
     }
 
-    public async Task<string?> ResetPasswordAsync(ResetPasswordRequest request)
+    public async Task<string?> ResetPasswordAsync(ResetPasswordRequestDto request)
     {
         try
         {
-            _unitOfWork.BeginTransaction();
 
-            var decryptedToken = PasswordHelper.Decrypt(request.Token);
+            var decryptedToken = _passwordHelper.Decrypt(request.Token);
 
             var tokenParts = decryptedToken.Split('|');
 
@@ -148,10 +153,15 @@ public class AuthenticationAppService(IAccountRepository accountRepository,IRese
             var resetPassword = await _resetPasswordRepository.GetByAccountIdAsync(accountId);
             
             if(resetPassword is null || resetPassword.ExpireAt < DateTime.UtcNow)
+            {
+                throw new ArgumentException("Invalid Token");
+            }
 
             var hashPassword = new PasswordHasher().HashPassword(request.NewPassword);
 
             account.Password = hashPassword;
+
+            _unitOfWork.BeginTransaction();
 
             await _accountRepository.UpdateAsync(account);
 
@@ -164,7 +174,8 @@ public class AuthenticationAppService(IAccountRepository accountRepository,IRese
             throw ex;
         }
     }
-    public async Task<TokenResponseDto?> LoginAsync(LoginRequest request)
+
+    public async Task<TokenResponseDto?> SignInAsync(LoginRequestDto request)
     {
         try
         {
@@ -252,13 +263,11 @@ public class AuthenticationAppService(IAccountRepository accountRepository,IRese
         return new JwtSecurityTokenHandler().WriteToken(tokenDescripton);
     }
 
- 
-
     private async Task<string> GenerateAndSaveRefreshToken(Account account)
     {
         _unitOfWork.BeginTransaction();
 
-        var refreshToken = PasswordHelper.GenerateRefreshToken();
+        var refreshToken = _passwordHelper.GenerateRefreshToken();
 
         account.RefreshToken = refreshToken;
         account.RefreshTokenExpiryTime = DateTime.UtcNow.AddMinutes(configuration.GetValue<int>("Jwt:RefreshTokenExpirationMinutes"));

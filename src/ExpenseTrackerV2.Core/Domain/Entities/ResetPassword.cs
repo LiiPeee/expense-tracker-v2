@@ -8,7 +8,7 @@ namespace ExpenseTrackerV2.Core.Domain.Entities
 {
     public class ResetPassword : BaseEntity
     {
-        public long AccoountId { get; set; }
+        public long AccountId { get; set; }
 
         public string HashedToken { get; set; }
 
