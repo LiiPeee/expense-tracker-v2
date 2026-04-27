@@ -18,6 +18,7 @@ public class Account : BaseEntity
     public DateTime? VerifiedAt { get; set; }
     public string? EmailVerificationToken { get; set; }
     public DateTime? EmailVerificationTokenExpiry { get; set; }
+    public long VerifyAttempts { get; set; } = 0;
     public bool IsActive { get; set; } = true;
     public List<Transactions> Transactions { get; set; } = new();
 }

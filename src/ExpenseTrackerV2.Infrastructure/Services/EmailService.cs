@@ -11,9 +11,9 @@ public class EmailService(IConfiguration configuration) : IEmailService
     private readonly IConfiguration _config = configuration;
 
 
-    public async Task SendCodeToEmailAsync(string email, string token)
+    public async Task SendCodeToEmailAsync(string email,string id, string token)
     {
-        var url = $"{_config["FrontEndUrl"]}/verify-email";
+        var url = $"{_config["FrontEndUrl"]}/verify-email/{id}";
         var htmlBody = $@"
             <!DOCTYPE html>
             <html lang='en'>

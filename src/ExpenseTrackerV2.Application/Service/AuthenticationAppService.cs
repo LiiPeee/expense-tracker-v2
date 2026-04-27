@@ -52,9 +52,11 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
             };
 
             _unitOfWork.BeginTransaction();
-            await _accountRepository.AddAsync(account);
+            var savedAccount = await _accountRepository.AddAsync(account);
 
-            await _emailService.SendCodeToEmailAsync(account.Email, account.EmailVerificationToken);
+            var idEncrypted = _passwordHelper.Encrypt(savedAccount.Id.ToString());
+
+            await _emailService.SendCodeToEmailAsync(account.Email, idEncrypted, account.EmailVerificationToken);
 
             _unitOfWork.Commit();
 
@@ -72,7 +74,22 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
         {
             var account = await _accountRepository.GetByEmailAsync(request.Email);
 
-            if (account is null) throw new ArgumentException("Invalid Token");
+            if (account is null || account.VerifyAttempts > 5) 
+            {
+                
+                throw new ArgumentException("Excceds attempts"); 
+            }
+
+            if (account.EmailVerificationToken != request.Token) 
+            {
+                account.VerifyAttempts += 1;
+                throw new ArgumentException("Invalid Token"); 
+            }
+
+            if (account.EmailVerificationTokenExpiry < DateTime.UtcNow) {
+                account.VerifyAttempts +=1;
+                throw new ArgumentException("Token Expiry"); 
+            }
 
             account.EmailVerified = true;
             account.EmailVerificationToken = null;
