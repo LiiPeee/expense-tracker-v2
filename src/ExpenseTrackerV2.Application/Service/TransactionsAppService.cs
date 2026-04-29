@@ -48,7 +48,7 @@ public class TransactionsAppService : ITransactionsAppService
             }
 
             var subCategory = await _subCategoryRepository.GetByNameAsync(transactionRequest.SubCategoryName)
-                ?? await _subCategoryRepository.AddAsync(new SubCategory { Name = transactionRequest.SubCategoryName, IsActive = true, CategoryId = category.Id });
+                ?? await _subCategoryRepository.AddAsync(new SubCategory { Name = transactionRequest.SubCategoryName, IsActive = true, CategoryId = category.Id, AccountId = accountId});
 
             var recurrenceId = EnumHelper.GetId(transactionRequest.Recurrence);
             var typeTransactionId = EnumHelper.GetId(transactionRequest.TypeTransaction);
@@ -370,14 +370,16 @@ public class TransactionsAppService : ITransactionsAppService
         }
     }
 
-    public async Task<List<FilterByMonthAndYearOutPut>> FilterByContactAndMonth(long accountId, long year, long month, TypeTransaction type, string contactName)
+    public async Task<IPagedResult<FilterByMonthAndYearOutPut>> FilterByContactAndMonth(long accountId, long year, long month, TypeTransaction type, string contactName, int pageNumber = 1)
     {
 
-        var transactions = await _transactionRepository.FilterByMonthAndContactAsync(accountId, year, month, type.ToString(), contactName);
+        var transactions = await _transactionRepository.FilterByMonthAndContactAsync(accountId, year, month, type.ToString(), contactName, pageNumber);
+
+        if(transactions.Items.Count == 0) throw new KeyNotFoundException("we cannot find transactions");
 
         var filter = new List<FilterByMonthAndYearOutPut>();
 
-        foreach (var t in transactions)
+        foreach (var t in transactions.Items)
         {
             var outputFilter = new FilterByMonthAndYearOutPut()
             {
@@ -396,7 +398,13 @@ public class TransactionsAppService : ITransactionsAppService
             filter.Add(outputFilter);
         }
 
-        return filter;
+        return new IPagedResult<FilterByMonthAndYearOutPut>
+        {
+            PageNumber = transactions.PageNumber,
+            PageSize = transactions.PageSize,
+            TotalRecords = transactions.TotalRecords,
+            Items = filter
+        };
     }
 
     public async Task<decimal> GetEconomyAsync(long accountId, long year, long month)

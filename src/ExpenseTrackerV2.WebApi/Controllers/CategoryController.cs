@@ -9,6 +9,7 @@ namespace ExpenseTrackerV2.WebApi.Controller
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "User")]
     public class CategoryController : ControllerBase
     {
         public readonly ICategoryAppService _categoryAppService;
@@ -16,7 +17,6 @@ namespace ExpenseTrackerV2.WebApi.Controller
         {
             _categoryAppService = categoryAppService;
         }
-        [Authorize(Roles = "User")]
         [HttpGet("[action]")]
         public async Task<IEnumerable<AllCategoriesOutPut>> GetAllAsync()
         {

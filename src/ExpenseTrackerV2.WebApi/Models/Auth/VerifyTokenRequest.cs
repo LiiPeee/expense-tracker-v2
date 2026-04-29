@@ -4,8 +4,7 @@ namespace ExpenseTrackerV2.WebApi.Models.Auth
 {
     public class VerifyTokenRequest
     {
-        [EmailAddress]
-        public string Email { get; set; }
+        public string id { get; set; }
 
         [Required]
         public string Token { get; set; }

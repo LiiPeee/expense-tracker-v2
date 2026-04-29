@@ -59,12 +59,18 @@ builder.Services.Configure<IpRateLimitOptions>(options =>
         {
             Endpoint = "*",
             Period = "10s",
-            Limit = 3
+            Limit = 5
         }
     ];
 });
 
-// CORS
+builder.Services.AddHsts(options =>
+{
+    options.Preload = true;
+    options.IncludeSubDomains = true;
+    options.MaxAge = TimeSpan.FromDays(365);
+});
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendDev", policy =>

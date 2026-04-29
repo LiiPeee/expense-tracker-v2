@@ -37,7 +37,7 @@ namespace ExpenseTrackerV2.WebApi.Controller
         {
             var requestDto = new VerifyTokenRequestDto()
             {
-                Email = request.Email,
+                id = request.id,
                 Token = request.Token
             };
 

@@ -24,7 +24,7 @@ public class CreateTrasactionRequest
 
     [Required(ErrorMessage = "CategoryName is required")]
     [JsonPropertyName("category")]
-    public Categories CategoryName { get; set; }
+    public string CategoryName { get; set; }
 
     [JsonPropertyName("subCategory")]
     [StringLength(30)]

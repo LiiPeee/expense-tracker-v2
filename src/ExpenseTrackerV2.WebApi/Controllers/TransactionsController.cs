@@ -74,10 +74,10 @@ namespace ExpenseTrackerV2.WebApi.Controller
             [FromQuery][Range(2000, 2100)] long year,
             [FromQuery][Range(1, 12)] long month,
             [FromQuery][StringLength(50)] string contactName,
-            [FromQuery] TypeTransaction type)
+            [FromQuery] TypeTransaction type, [FromQuery][Range(1, 10)] int pageNumber = 1)
         {
             var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            return Ok(await _transactionAppService.FilterByContactAndMonth(accountId, year, month, type, contactName));
+            return Ok(await _transactionAppService.FilterByContactAndMonth(accountId, year, month, type, contactName, pageNumber));
         }
 
         [HttpGet("[action]")]

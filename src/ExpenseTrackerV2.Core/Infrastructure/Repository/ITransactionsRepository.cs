@@ -8,7 +8,7 @@ public interface ITransactionsRepository : IRepositoryBase<Transactions>
 {
     Task<IPagedResult<Transactions>> FilterTransactionsByCategoryAsync(long accountId, string categoryName, string type, long month, long year, int pageNumber = 1);
     Task<IPagedResult<Transactions>> FilterByMonthAndYearAsync(long accountId, long month, long year, int pageNumber = 1);
-    Task<List<Transactions>> FilterByMonthAndContactAsync(long accountId, long year, long month, string type, string contactName);
+    Task<IPagedResult<Transactions>> FilterByMonthAndContactAsync(long accountId, long year, long month, string type, string contactName, int pageNumber = 1);
     Task<List<Transactions>> FilterExpenseMonthAndYearAsync(long accountId, long year, long month);
     Task<List<Transactions>> FilterIncomeMonthAndYearAsync(long accountId, long year, long month);
     Task<List<Transactions>> FilterExpenseMonthWithContactAsync(long accountId, long year, long month);

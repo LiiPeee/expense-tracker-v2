@@ -72,7 +72,6 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         };
     }
 
-    // FILTRO POR TIPO, MES E ANO
     public async Task<IPagedResult<Transactions>> FilterTransactionsByTypeAsync(long accountId, string type, long month, long year, int pageNumber = 1)
     {
         const int pageSize = 10;
@@ -189,31 +188,65 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         };
     }
 
-    public async Task<List<Transactions>> FilterByMonthAndContactAsync(long accountId, long year, long month, string type, string contactName)
+    public async Task<IPagedResult<Transactions>> FilterByMonthAndContactAsync(long accountId, long year, long month, string type, string contactName, int pageNumber = 1)
     {
-        var query = @"SELECT t.*, ctt.*
-        FROM Transactions t 
-        INNER JOIN Contact ctt ON t.ContactId = ctt.Id 
+
+        const int pageSize = 10;
+        const int maxPages = 10;
+
+        pageNumber = Math.Clamp(pageNumber, 1, maxPages);
+        var offset = (pageNumber - 1) * pageSize;
+
+        var query = @"
+        SELECT t.*, ct.*, cat.*
+        FROM Transactions t
+        INNER JOIN Contact ct ON t.ContactId = ct.Id
+        INNER JOIN Category cat ON t.CategoryId = cat.Id
         INNER JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
-        WHERE t.AccountId = @AccountId 
-            AND ((MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year) 
-            OR (MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)) 
-            AND ctt.Name = @ContactName AND tp.Name = @TypeName";
+        WHERE t.AccountId = @AccountId AND tp.Name = @Type 
+            AND ct.Name = @ContactName
+            AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)
+            OR (t.DateOfInstallment IS NOT NULL AND MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year))
+        ORDER BY t.Id DESC
+        OFFSET @OffSet ROWS FETCH NEXT @PageSize ROWS ONLY;
 
-        if (_db._connection.State == ConnectionState.Open)
-        {
-            var result = await _db._connection.QueryAsync<Transactions, Contact, Transactions>(query, (t, c) =>
-            {
-                t.Contact = c;
-                return t;
-            }, new { AccountId = accountId, Month = month, ContactName = contactName, TypeName = type, Year = year }, _db._transaction, splitOn: "Id");
+        SELECT COUNT(1)
+        FROM Transactions t
+        INNER JOIN Contact ct ON t.ContactId = ct.Id
+        INNER JOIN Category cat ON t.CategoryId = cat.Id
+        INNER JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
+        WHERE t.AccountId = @AccountId AND tp.Name = @Type 
+            AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)
+            OR (t.DateOfInstallment IS NOT NULL AND MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year));";
 
-            return result.ToList();
-        }
-        else
+        if (_db._connection.State != ConnectionState.Open)
         {
             throw new Exception("connection lost");
         }
+
+        using var multi = await _db._connection.QueryMultipleAsync(
+            query,
+            new { AccountId = accountId, Month = month, Year = year, OffSet = offset, PageSize = pageSize, ContactName = contactName,Type = type },
+            _db._transaction);
+
+        var items = multi.Read<Transactions, Contact, Category, Transactions>(
+            (t, c, cat) =>
+            {
+                t.Contact = c;
+                t.Category = cat;
+                return t;
+            },
+            splitOn: "Id,Id").ToList();
+
+        var totalRecords = await multi.ReadSingleAsync<int>();
+
+        return new IPagedResult<Transactions>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalRecords = totalRecords,
+            Items = items
+        };
     }
 
     public async Task<List<Transactions>> FilterExpenseMonthAndYearAsync(long accountId, long year, long month)

@@ -11,6 +11,7 @@ namespace ExpenseTrackerV2.WebApi.Controller
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Admin,User")]
     public class SubCategoryController : ControllerBase
     {
         private readonly ISubCategoryAppService _subCategoryAppService;
@@ -18,7 +19,6 @@ namespace ExpenseTrackerV2.WebApi.Controller
         {
             _subCategoryAppService = subCategoryAppService;
         }
-        [Authorize(Roles = "Admin,User")]
         [HttpPost("[action]")]
         public async Task CreateAsync([FromBody] CreateSubCategoryRequest request)
         {
@@ -27,7 +27,6 @@ namespace ExpenseTrackerV2.WebApi.Controller
             await _subCategoryAppService.CreateAsync(accountId, request);
         }
 
-        [Authorize(Roles = "Admin,User")]
         [HttpGet("[action]")]
         public async Task<IEnumerable<SubCategory>> GetAllAsync()
         {

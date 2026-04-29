@@ -9,6 +9,7 @@ using ExpenseTrackerV2.Core.Infrastructure.Repository;
 using ExpenseTrackerV2.Core.Infrastructure.Services;
 using Microsoft.AspNet.Identity;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Identity.Client;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -35,6 +36,16 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
         {
             if (await _accountRepository.GetByEmailAsync(request.Email) != null) throw new ArgumentException("account is already exist");
 
+            if (!string.IsNullOrWhiteSpace(request.Password)) throw new ArgumentException("password must not be empty");
+
+            if (request.Password.Length < 8) throw new ArgumentException("password must be at least 8 characters");
+
+            if(request.Password.Length > 20) throw new ArgumentException("password must be less than 20 characters");
+
+            if(request.Password.Any(char.IsUpper) == false) throw new ArgumentException("password must contain at least one uppercase letter");
+
+            if(request.Password.Any(char.IsLower) == false) throw new ArgumentException("password must contain at least one lowercase letter");
+
             var hashPassword = new PasswordHasher().HashPassword(request.Password);
 
             var account = new Account
@@ -47,14 +58,14 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
                 IsActive = false,
                 EmailVerified = false,
                 VerifiedAt = null,
-                EmailVerificationToken = GenerateVerificationCode(),
+                EmailVerificationToken = _passwordHelper.GenerateVerificationCode(),
                 EmailVerificationTokenExpiry = DateTime.Now.AddHours(4)
             };
 
             _unitOfWork.BeginTransaction();
             var savedAccount = await _accountRepository.AddAsync(account);
 
-            var idEncrypted = _passwordHelper.Encrypt(savedAccount.Id.ToString());
+            var idEncrypted = _passwordHelper.EncryptUrl(savedAccount.Id.ToString());
 
             await _emailService.SendCodeToEmailAsync(account.Email, idEncrypted, account.EmailVerificationToken);
 
@@ -72,7 +83,7 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
     {
         try
         {
-            var account = await _accountRepository.GetByEmailAsync(request.Email);
+            var account = await _accountRepository.GetByIdAsync(long.Parse(_passwordHelper.DecryptUrl(request.id)));
 
             if (account is null || account.VerifyAttempts > 5) 
             {
@@ -200,10 +211,16 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
 
             if (account == null) throw new Exception("email is invalid");
 
+            if(account.VerifyAttempts > 5) throw new Exception("exceeds attempts");
+
             if (new PasswordHasher().VerifyHashedPassword(account.Password, request.Password) == PasswordVerificationResult.Failed)
             {
                 throw new Exception("password is invalid");
             }
+
+            if(account.IsActive == false) throw new Exception("account is not active");
+
+            if(account.EmailVerified == false) throw new Exception("email is not verified");
 
             return new TokenResponseDto()
             {
@@ -239,9 +256,11 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
     {
         _unitOfWork.BeginTransaction();
 
-        var account = await ValidateRefreshTokenAsync(request.AccountId, request.RefreshToken);
+        var account = await _accountRepository.GetByIdAsync(request.AccountId);
 
         if (account is null) throw new Exception("invalid refresh token");
+
+        await ValidateRefreshTokenAsync(account, request.RefreshToken);
 
         account.RefreshToken = null;
         account.RefreshTokenExpiryTime = null;
@@ -295,17 +314,19 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
         return refreshToken;
 
     }
-    private static string GenerateVerificationCode()
-    {
-        Random random = new Random();
-        return random.Next(100000, 999999).ToString();
-    }
 
-    private async Task<Account?> ValidateRefreshTokenAsync(long accountId, string refreshToken)
+    private async Task<Account?> ValidateRefreshTokenAsync(Account account, string refreshToken)
     {
-        var account = await _accountRepository.GetByIdAsync(accountId);
-        if (account == null || account.RefreshToken != refreshToken || account.RefreshTokenExpiryTime <= DateTime.UtcNow)
+        _unitOfWork.BeginTransaction();
+
+        if (account.RefreshToken != refreshToken || account.RefreshTokenExpiryTime <= DateTime.UtcNow)
         {
+            account.RefreshToken = null;
+            account.RefreshTokenExpiryTime = null;
+
+            await _accountRepository.UpdateAsync(account);
+
+            _unitOfWork.Commit();
             throw new Exception("invalid refresh token");
         }
         return account;
