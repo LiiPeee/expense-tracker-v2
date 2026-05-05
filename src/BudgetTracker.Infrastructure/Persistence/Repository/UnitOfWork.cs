@@ -1,0 +1,61 @@
+using BudgetTracker.Core.Domain.Repository;
+using BudgetTracker.Core.Domain.UnitOfWork;
+using BudgetTracker.Core.Infrastructure.Repository;
+using Microsoft.Data.SqlClient;
+using System.Data;
+
+namespace BudgetTracker.Infrastructure.Persistence.Repository
+{
+    public class UnitOfWork : IUnitOfWork
+    {
+        private readonly DbSession _session;
+
+        public UnitOfWork(DbSession session)
+        {
+            _session = session;
+        }
+
+        public void BeginTransaction()
+        {
+            _session._transaction = _session._connection.BeginTransaction();
+        }
+
+        public void Commit()
+        {
+            try
+            {
+                _session._transaction.Commit();
+            }
+            catch (Exception)
+            {
+                _session._transaction.Rollback();
+                _session._transaction.Dispose();
+
+                throw;
+            }
+            finally
+            {
+                _session._transaction?.Dispose();
+            }
+        }
+      
+        public void Rollback()
+        {
+            try
+            {
+                _session._transaction.Rollback();
+            }
+          
+            finally
+            {
+                _session._transaction?.Dispose();
+            }
+        }
+        public void Dispose()
+        {
+            _session.Dispose();
+        }
+    }
+}
+
+

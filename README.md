@@ -1,4 +1,4 @@
-# Expense Tracker V2
+# Budget Tracker
 
 Sistema de controle financeiro desenvolvido em .NET 9 com C# 13.0, permitindo gerenciar despesas, receitas, contatos e categorias de transações.
 
@@ -18,8 +18,8 @@ Sistema de controle financeiro desenvolvido em .NET 9 com C# 13.0, permitindo ge
 
 - **.NET 9.0**
 - **C# 13.0**
-- **Entity Framework Core**
-- **SQL Server**
+- **Entity Framework Core  **
+- **SQL Server**            
 - **JWT Authentication**
 - **Swagger/OpenAPI**
 - **ASP.NET Core Web API**
@@ -28,10 +28,10 @@ Sistema de controle financeiro desenvolvido em .NET 9 com C# 13.0, permitindo ge
 
 O projeto segue uma arquitetura em camadas:
 
-- **ExpenseTrackerV2.WebApi**: Camada de apresentação (Controllers)
-- **ExpenseTrackerV2.Application**: Lógica de aplicação (Services)
-- **ExpenseTrackerV2.Core**: Domínio (Entities, DTOs, Interfaces)
-- **ExpenseTrackerV2.Infrastructure**: Infraestrutura (Repositories, Persistence)
+- **BudgetTracker.WebApi**: Camada de apresentação (Controllers)
+- **BudgetTracker.Application**: Lógica de aplicação (Services)
+- **BudgetTracker.Core**: Domínio (Entities, DTOs, Interfaces)
+- **BudgetTracker.Infrastructure**: Infraestrutura (Repositories, Persistence)
 
 ## 📦 Pré-requisitos
 
@@ -76,15 +76,15 @@ Execute: `docker-compose up -d`
 Crie o banco com este comando isolado:
 
 ```sql
-CREATE DATABASE ExpenseTracker;
+CREATE DATABASE BudgetTracker;
 ```
 
-Depois, abra uma nova consulta conectada ao banco `ExpenseTracker` e execute os scripts de tabelas abaixo.
+Depois, abra uma nova consulta conectada ao banco `BudgetTracker` e execute os scripts de tabelas abaixo.
 
 Se o seu cliente SQL permitir trocar o contexto da conexão por comando, você pode executar antes:
 
 ```sql
-USE ExpenseTracker;
+USE BudgetTracker;
 ```
 
 ### 3. Estrutura das Tabelas
@@ -431,23 +431,23 @@ INSERT INTO Recurrence (Name) VALUES ('NONE'), ('DAILY'), ('BiWeekly'), ('Monthl
 ### 1. Clonar o repositório
 
 ```bash
-git clone https://github.com/LiiPeee/expense-tracker-v2.git
-cd expense-tracker-v2
+git clone https://github.com/LiiPeee/budget-tracker.git
+cd budget-tracker
 ```
 
 ### 2. Configurar a Connection String
 
-Edite o arquivo `src/ExpenseTrackerV2.WebApi/appsettings.json`:
+Edite o arquivo `src/BudgetTracker.WebApi/appsettings.json`:
 
 ```json
 {
   "ConnectionStrings": {
-    "ExpenseTrackerV2": "Server=localhost,1433;Database=ExpenseTracker;User Id=sa;Password=SUA_SENHA;TrustServerCertificate=True;"
+    "BudgetTracker": "Server=localhost,1433;Database=BudgetTracker;User Id=sa;Password=SUA_SENHA;TrustServerCertificate=True;"
   },
   "Jwt": {
     "Token": "sua-chave-secreta-jwt-aqui-deve-ser-longa-e-segura",
-    "Issuer": "ExpenseTrackerV2",
-    "Audience": "ExpenseTrackerV2",
+    "Issuer": "BudgetTracker",
+    "Audience": "BudgetTracker",
     "TokenExpirationMinutes": 60,
     "RefreshTokenExpirationMinutes": 60
   }
@@ -463,22 +463,22 @@ dotnet restore
 ### 4. Aplicar Migrations (se houver)
 
 ```bash
-cd src/ExpenseTrackerV2.Infrastructure
-dotnet ef database update --startup-project ../ExpenseTrackerV2.WebApi
+cd src/BudgetTracker.Infrastructure
+dotnet ef database update --startup-project ../BudgetTracker.WebApi
 ```
 
 ## ▶️ Executando o Projeto
 
 ### Via Visual Studio
 
-1. Abra a solução `ExpenseTrackerV2.sln`
-2. Defina `ExpenseTrackerV2.WebApi` como projeto de inicialização
+1. Abra a solução `BudgetTracker.sln`
+2. Defina `BudgetTracker.WebApi` como projeto de inicialização
 3. Pressione `F5` ou clique em **Run**
 
 ### Via CLI
 
 ```bash
-cd src/ExpenseTrackerV2.WebApi
+cd src/BudgetTracker.WebApi
 dotnet run
 ```
 
@@ -491,9 +491,9 @@ A API estará disponível em:
 ## 📁 Estrutura do Projeto
 
 ```
-expense-tracker-v2/
+budget-tracker/
 ├── src/
-│   ├── ExpenseTrackerV2.WebApi/          # API Controllers
+│   ├── BudgetTracker.WebApi/          # API Controllers
 │   │   ├── Controllers/
 │   │   │   ├── AuthController.cs
 │   │   │   ├── TransactionsController.cs
@@ -503,13 +503,13 @@ expense-tracker-v2/
 │   │   ├── Program.cs
 │   │   └── appsettings.json
 │   │
-│   ├── ExpenseTrackerV2.Application/     # Application Services
+│   ├── BudgetTracker.Application/     # Application Services
 │   │   └── Service/
 │   │       ├── TransactionsAppService.cs
 │   │       ├── AuthenticationAppService.cs
 │   │       └── CategoryAppService.cs
 │   │
-│   ├── ExpenseTrackerV2.Core/            # Domain Layer
+│   ├── BudgetTracker.Core/            # Domain Layer
 │   │   └── Domain/
 │   │       ├── Entities/
 │   │       │   ├── Account.cs
@@ -523,7 +523,7 @@ expense-tracker-v2/
 │   │       ├── Service/
 │   │       └── UnitOfWork/
 │   │
-│   └── ExpenseTrackerV2.Infrastructure/  # Infrastructure Layer
+│   └── BudgetTracker.Infrastructure/  # Infrastructure Layer
 │       └── Persistence/
 │           └── Repository/
 │               ├── TransactionsRepository.cs

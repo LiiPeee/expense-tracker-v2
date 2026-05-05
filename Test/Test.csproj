@@ -18,9 +18,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\ExpenseTrackerV2.Core\ExpenseTrackerV2.Core.csproj" />
-    <ProjectReference Include="..\src\ExpenseTrackerV2.Infrastructure\ExpenseTrackerV2.Infrastructure.csproj" />
-	<ProjectReference Include="..\src\ExpenseTrackerV2.Application\ExpenseTrackerV2.Application.csproj" />
+    <ProjectReference Include="..\src\BudgetTracker.Core\BudgetTracker.Core.csproj" />
+    <ProjectReference Include="..\src\BudgetTracker.Infrastructure\BudgetTracker.Infrastructure.csproj" />
+    <ProjectReference Include="..\src\BudgetTracker.Application\BudgetTracker.Application.csproj" />
 
   </ItemGroup>
 

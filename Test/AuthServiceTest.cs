@@ -1,12 +1,12 @@
-﻿using ExpenseTrackerV2.Application.Service;
-using ExpenseTrackerV2.Core.Domain.Entities;
-using ExpenseTrackerV2.Core.Domain.Models.Request.Account;
-using ExpenseTrackerV2.Core.Domain.Repository;
-using ExpenseTrackerV2.Core.Domain.UnitOfWork;
-using ExpenseTrackerV2.Core.Domain.Utils;
-using ExpenseTrackerV2.Core.Infrastructure.Repository;
-using ExpenseTrackerV2.Core.Infrastructure.Services;
-using ExpenseTrackerV2.Infrastructure.Persistence.Repository;
+using BudgetTracker.Application.Service;
+using BudgetTracker.Core.Domain.Entities;
+using BudgetTracker.Core.Domain.Models.Request.Account;
+using BudgetTracker.Core.Domain.Repository;
+using BudgetTracker.Core.Domain.UnitOfWork;
+using BudgetTracker.Core.Domain.Utils;
+using BudgetTracker.Core.Infrastructure.Repository;
+using BudgetTracker.Core.Infrastructure.Services;
+using BudgetTracker.Infrastructure.Persistence.Repository;
 using Microsoft.Extensions.Configuration;
 using Moq;
 
@@ -89,7 +89,7 @@ namespace Test
 
             var request = new VerifyTokenRequestDto()
             {
-                Email = "xpto@gmail",
+                Id = "xpto@gmail",
                 Token = "xpto"
             };
             var service = await _authService.VerifyTokenAsync(request);
@@ -98,3 +98,4 @@ namespace Test
         }
     }
 }
+

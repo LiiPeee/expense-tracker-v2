@@ -1,0 +1,26 @@
+using System;
+using System.Text.Json.Serialization;
+
+namespace BudgetTracker.Core.Domain.Entities;
+
+public class Account : BaseEntity
+{
+    public long Id { get; set; }
+    public string FirstName { get; set; } = null!;
+    public string LastName { get; set; } = null!;
+    public string Email { get; set; }
+    public string Password { get; set; } = null!;
+    public decimal Balance { get; set; }
+    public string Role { get; set; } = "User";
+    public string? RefreshToken { get; set; }
+    public DateTimeOffset? RefreshTokenExpiryTime { get; set; }
+    public bool EmailVerified { get; set; } = false;
+    public DateTime? VerifiedAt { get; set; }
+    public string? EmailVerificationToken { get; set; }
+    public DateTime? EmailVerificationTokenExpiry { get; set; }
+    public long VerifyAttempts { get; set; } = 0;
+    public bool IsActive { get; set; } = true;
+    public List<Transactions> Transactions { get; set; } = new();
+}
+
+

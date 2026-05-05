@@ -1,0 +1,7 @@
+{
+  "profiles": {
+    "BudgetTracker.Core": {
+      "commandName": "Project"
+    }
+  }
+}
