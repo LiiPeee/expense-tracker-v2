@@ -36,7 +36,7 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
         {
             if (await _accountRepository.GetByEmailAsync(request.Email) != null) throw new ArgumentException("account is already exist");
 
-            if (!string.IsNullOrWhiteSpace(request.Password)) throw new ArgumentException("password must not be empty");
+            if (string.IsNullOrWhiteSpace(request.Password)) throw new ArgumentException("password must not be empty");
 
             if (request.Password.Length < 8) throw new ArgumentException("password must be at least 8 characters");
 
@@ -65,11 +65,11 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
             _unitOfWork.BeginTransaction();
             var savedAccount = await _accountRepository.AddAsync(account);
 
+            _unitOfWork.Commit();
+
             var idEncrypted = _passwordHelper.EncryptUrl(savedAccount.Id.ToString());
 
             await _emailService.SendCodeToEmailAsync(account.Email, idEncrypted, account.EmailVerificationToken);
-
-            _unitOfWork.Commit();
 
             return "We send a verification email for you";
         }
@@ -87,7 +87,6 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
 
             if (account is null || account.VerifyAttempts > 5) 
             {
-                
                 throw new ArgumentException("Excceds attempts"); 
             }
 

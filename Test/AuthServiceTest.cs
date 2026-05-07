@@ -42,7 +42,7 @@ namespace Test
                 Email = "xpto@gmail",
                 FirstName = "xpto",
                 LastName = "xpto",
-                Password = "xpto"
+                Password = "xpto@assaLddcc55"
             };
             
             var account = new Account()
@@ -51,13 +51,13 @@ namespace Test
                 Email = "xpto@gmail",
                 FirstName = "xpto",
                 LastName = "xpto",
-                Password = "hash",
+                Password = "xpto@assaLddcc55",
                 EmailVerificationToken = "token",
                 EmailVerificationTokenExpiry = DateTime.UtcNow.AddHours(24),
             };
 
-            _accountRepository.Setup(a => a.AddAsync(account)).Returns(Task.FromResult(account));
-
+            _accountRepository.Setup(a => a.AddAsync(It.IsAny<Account>())).Returns(Task.FromResult(account));
+            _passwordHelper.Setup(p => p.EncryptUrl(account.Id.ToString())).Returns("hash");
             var service = await _authService.SignUpAsync(request);
             Assert.That(service, Is.EqualTo("We send a verification email for you"));
         }
@@ -73,17 +73,15 @@ namespace Test
                 LastName = "xpto",
                 Password = "hash",
                 EmailVerificationToken = "xpto",
+                VerifyAttempts = 0,
                 EmailVerificationTokenExpiry = DateTime.Now.AddHours(4),
                 IsActive = false,
                 EmailVerified = false,
                 VerifiedAt = null,
             };
-            _accountRepository.Setup(a => a.GetByEmailAsync("xpto@gmail")).Returns(Task.FromResult(account));
-
-            account.EmailVerified = true;
-            account.EmailVerificationToken = null;
-            account.VerifiedAt = DateTime.Now;
-            account.IsActive = true;
+            _accountRepository.Setup(a => a.GetByIdAsync(It.IsAny<long>()))
+                .ReturnsAsync(account);
+            _passwordHelper.Setup(x => x.DecryptUrl(It.IsAny<string>())).Returns("1");
 
             _accountRepository.Setup(a => a.UpdateAsync(account)).Returns(Task.FromResult(true));
 
