@@ -75,14 +75,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendDev", policy =>
     {
-        policy.WithOrigins(builder.Configuration["FrontEndUrl"]!)
+        policy.WithOrigins(builder.Configuration["FrontEndUrl"])
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 
     options.AddPolicy("FrontendProd", policy =>
     {
-        policy.WithOrigins(builder.Configuration["FrontEndUrl"]!)
+        policy.WithOrigins(builder.Configuration["FrontEndUrl"])
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -93,14 +93,25 @@ var app = builder.Build();
 app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseMiddleware<SecurityHeadersMiddleware>();
 
-if (app.Environment.IsDevelopment())
+var enableSwagger = app.Environment.IsDevelopment()
+    || builder.Configuration.GetValue<bool>("Swagger:Enabled");
+
+if (enableSwagger)
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+
+if (app.Environment.IsDevelopment())
+{
     app.UseCors("FrontendDev");
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 else
 {
+    app.UseSwagger();
+    app.UseSwaggerUI();
     app.UseHttpsRedirection();
     app.UseHsts();
     app.UseCors("FrontendProd");
@@ -109,6 +120,6 @@ else
 app.UseIpRateLimiting();
 app.UseAuthentication();
 app.UseAuthorization();
-        
+
 app.MapControllers();
 app.Run();
