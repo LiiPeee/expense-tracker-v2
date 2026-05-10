@@ -1,11 +1,11 @@
+using System.Text;
 using AspNetCoreRateLimit;
-using DotNetEnv;
 using BudgetTracker.Application;
 using BudgetTracker.Core.Domain.Options;
 using BudgetTracker.Infrastructure;
+using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 

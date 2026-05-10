@@ -1,10 +1,9 @@
+using System.Security.Claims;
 using BudgetTracker.Application.Dtos.Request;
-using BudgetTracker.Application.Service;
 using BudgetTracker.Core.Domain.Entities;
 using BudgetTracker.Core.Domain.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace BudgetTracker.WebApi.Controller
 {
@@ -18,7 +17,7 @@ namespace BudgetTracker.WebApi.Controller
         {
             _contactAppService = contactappService;
         }
-       
+
         [HttpPost("[action]")]
         public async Task<Contact?> CreateAsync([FromBody] ContactRequest contactRequest)
         {

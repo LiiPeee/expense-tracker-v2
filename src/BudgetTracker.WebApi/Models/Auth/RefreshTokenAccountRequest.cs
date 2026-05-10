@@ -1,5 +1,3 @@
-using System;
-
 namespace BudgetTracker.WebApi.Models.Auth;
 
 public class RefreshTokenAccountRequest

@@ -1,6 +1,4 @@
 using System.Security.Claims;
-using BudgetTracker.Application.Dtos.Request;
-using BudgetTracker.Application.Service;
 using BudgetTracker.Core.Domain.Entities;
 using BudgetTracker.Core.Domain.Models.Request;
 using BudgetTracker.Core.Domain.Service;

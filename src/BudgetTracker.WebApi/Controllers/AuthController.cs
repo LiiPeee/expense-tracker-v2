@@ -1,11 +1,11 @@
 
+using System.Security.Claims;
 using BudgetTracker.Core.Domain.Models.Output;
 using BudgetTracker.Core.Domain.Models.Request.Account;
 using BudgetTracker.Core.Domain.Service;
 using BudgetTracker.WebApi.Models.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace BudgetTracker.WebApi.Controller
 {
@@ -61,7 +61,7 @@ namespace BudgetTracker.WebApi.Controller
         {
             return Ok(await _accountAppService.VerifyEmailAsync(email));
         }
-        
+
         [HttpPost("[action]")]
         [Authorize(Roles = "User")]
         public async Task<ActionResult<TokenResponseDto?>> RefreshTokenAsync(RefreshTokenAccountRequest request)
