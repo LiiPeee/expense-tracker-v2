@@ -2,11 +2,11 @@ trigger:
 - main
 
 pool:
-  vmImage: 'windows-2022'
+  vmImage: 'windows-latest'
 
 variables:
-  solution: 'BudgetTracker.sln'
   buildConfiguration: 'Release'
+  webProject: 'src/BudgetTracker.WebApi/BudgetTracker.WebApi.csproj'
 
 steps:
 - task: UseDotNet@2
@@ -14,26 +14,39 @@ steps:
     packageType: 'sdk'
     version: '9.x'
 
-- task: NuGetToolInstaller@1
-
-- task: NuGetCommand@2
+- task: DotNetCoreCLI@2
+  displayName: Restore
   inputs:
-    restoreSolution: '$(solution)'
+    command: 'restore'
+    projects: 'BudgetTracker.sln'
 
-- task: VSBuild@1
+- task: DotNetCoreCLI@2
+  displayName: Build
   inputs:
-    solution: '$(solution)'
-    msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:PackageLocation="$(build.artifactStagingDirectory)"'
-    platform: 'Any CPU'
-    configuration: '$(buildConfiguration)'
+    command: 'build'
+    projects: 'BudgetTracker.sln'
+    arguments: '--configuration $(buildConfiguration)'
 
-- task: VSTest@2
+- task: DotNetCoreCLI@2
+  displayName: Test
   inputs:
-    platform: 'Any CPU'
-    configuration: '$(buildConfiguration)'
+    command: 'test'
+    projects: 'Test/Test.csproj'
+    arguments: '--configuration $(buildConfiguration) --no-build'
 
-- task: PublishBuildArtifacts@1
+- task: DotNetCoreCLI@2
+  displayName: Publish WebApi
   inputs:
-    pathToPublish: '$(Build.ArtifactStagingDirectory)'
-    artifactName: 'drop'
-    publishLocation: 'Container'
+    command: 'publish'
+    publishWebProjects: false
+    projects: '$(webProject)'
+    arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/publish'
+    zipAfterPublish: true
+
+- task: AzureWebApp@1
+  displayName: Deploy to App Service
+  inputs:
+    azureSubscription: 'NOME_DA_SERVICE_CONNECTION'
+    appType: 'webApp'
+    appName: 'budgettracker-api'
+    package: '$(Build.ArtifactStagingDirectory)/publish/**/*.zip'
