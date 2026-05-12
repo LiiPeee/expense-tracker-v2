@@ -40,7 +40,6 @@ usersecrets/
 *.bak
 
 # Arquivos do Docker
-**/Dockerfile
 **/docker-compose.yml
 **/docker-compose.override.yml
 **/.docker/
