@@ -6,6 +6,7 @@ using BudgetTracker.Infrastructure.Persistence.Repository;
 using BudgetTracker.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Resend;
 
 namespace BudgetTracker.Infrastructure;
 
@@ -13,6 +14,11 @@ public static class InfrastructureDependencyWebApi
 {
     public static IServiceCollection AddInfrastructureWebApi(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddResend(options =>
+        {
+            options.ApiToken = configuration["Resend:ApiToken"]!;
+        });
+
         return services
         .AddScoped<DbSession>()
         .AddScoped<IAccountRepository, AccountRepository>()
