@@ -108,9 +108,21 @@ builder.Services.AddCors(options =>
 
     options.AddPolicy("FrontendProd", policy =>
     {
-        policy.WithOrigins(builder.Configuration["FrontEndUrl"] ?? string.Empty)
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        var allowedOrigins = (builder.Configuration["ALLOWED_ORIGINS"] ?? builder.Configuration["FrontEndUrl"] ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(o => !string.IsNullOrWhiteSpace(o))
+            .ToArray();
+
+        if (allowedOrigins.Length > 0)
+        {
+            policy.WithOrigins(allowedOrigins)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        }
+        else
+        {
+            policy.WithOrigins("__none__");
+        }
     });
 });
 
