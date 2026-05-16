@@ -3,7 +3,6 @@ using System.Data;
 using System.Reflection;
 using Dapper;
 using BudgetTracker.Core.Domain.Repository;
-using Microsoft.EntityFrameworkCore;
 
 namespace BudgetTracker.Infrastructure.Persistence.Repository;
 
@@ -31,40 +30,26 @@ public class RepositoryBase<T> : IRepositoryBase<T> where T : class
         var columns = string.Join(", ", properties.Keys);
         var values = string.Join(", ", properties.Keys.Select(k => $"@{k}"));
 
-        var query = $"INSERT INTO {_tableName} ({columns}) VALUES ({values}); SELECT CAST(SCOPE_IDENTITY() as int)";
+        var query = $"INSERT INTO {_tableName} ({columns}) VALUES ({values}) RETURNING id";
 
-        if (_db._connection.State == ConnectionState.Open)
-        {
-            var id = await _db._connection.ExecuteScalarAsync<int>(query, entity, _db._transaction);
-            var selectQuery = $"SELECT * FROM {_tableName} WHERE Id = @Id";
-            return await _db._connection.QueryFirstOrDefaultAsync<T>(selectQuery, new { Id = id }, _db._transaction);
-        }
-        else
-        {
-                _db._connection.Open();
-                var id = await _db._connection.ExecuteScalarAsync<int>(query, entity);
-                var selectQuery = $"SELECT * FROM {_tableName} WHERE Id = @Id";
-                return await _db._connection.QueryFirstOrDefaultAsync<T>(selectQuery, new { Id = id });
-        }
+        if (_db._connection.State != ConnectionState.Open)
+            throw new InvalidOperationException("Database connection is not open.");
+
+        var id = await _db._connection.ExecuteScalarAsync<long>(query, entity, _db._transaction);
+        var selectQuery = $"SELECT * FROM {_tableName} WHERE id = @Id";
+        return await _db._connection.QueryFirstOrDefaultAsync<T>(selectQuery, new { Id = id }, _db._transaction)
+            ?? throw new InvalidOperationException($"Failed to retrieve inserted record from {_tableName}.");
     }
 
     public async Task<IEnumerable<T>> GetAllAsync()
     {
         var query = $"SELECT * FROM {_tableName}";
 
-        if (_db._connection.State == ConnectionState.Open)
-        {
-         
-            var result = await _db._connection.QueryAsync<T>(query, transaction: _db._transaction);
-            return result.ToList();
-        }
-        else
-        {
-            _db._connection.Open();
-            var result = await _db._connection.QueryAsync<T>(query);
-            return result.ToList();
-        }
-        
+        if (_db._connection.State != ConnectionState.Open)
+            throw new InvalidOperationException("Database connection is not open.");
+
+        var result = await _db._connection.QueryAsync<T>(query, transaction: _db._transaction);
+        return result.ToList();
     }
 
     public async Task<T?> GetByIdAsync(long id)

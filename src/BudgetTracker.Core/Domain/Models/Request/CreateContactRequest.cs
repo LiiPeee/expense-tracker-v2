@@ -1,13 +1,11 @@
-using System;
+using BudgetTracker.Core.Domain.Enum;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
-using BudgetTracker.Core.Domain.Enum;
 
-namespace BudgetTracker.Core.Domain.Models.Request.Transaction;
+namespace BudgetTracker.Application.Dtos.Request;
 
-public class ContactRequest
+public class CreateContactRequest
 {
-    public string? ContactId { get; set; }
     [Required(ErrorMessage = "Name is required")]
     public string Name { get; set; }
     [Required(ErrorMessage = "Email is required")]
@@ -26,3 +24,5 @@ public class ContactRequest
     public string Country { get; set; } = null!;
     public bool IsPrimary { get; set; }
 }
+
+

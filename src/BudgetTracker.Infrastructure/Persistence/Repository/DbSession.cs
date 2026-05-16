@@ -1,4 +1,4 @@
-using Microsoft.Data.SqlClient;
+using Npgsql;
 using Microsoft.Extensions.Configuration;
 
 using System.Data;
@@ -9,7 +9,7 @@ namespace BudgetTracker.Infrastructure.Persistence.Repository
     public class DbSession : IDisposable
     {
         public IDbConnection _connection { get; }
-        public IDbTransaction _transaction { get; set; }
+        public IDbTransaction? _transaction { get; set; }
 
         public string _connectrionString { get; set; }
 
@@ -18,7 +18,7 @@ namespace BudgetTracker.Infrastructure.Persistence.Repository
         public DbSession(IConfiguration configuration)
         {
             _connectrionString = configuration.GetConnectionString("BudgetTracker");
-            _connection = new SqlConnection(_connectrionString);
+            _connection = new NpgsqlConnection(_connectrionString);
             _connection.Open();
         }
 

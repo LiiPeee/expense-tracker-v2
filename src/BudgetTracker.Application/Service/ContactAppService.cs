@@ -1,5 +1,6 @@
 using BudgetTracker.Application.Dtos.Request;
 using BudgetTracker.Core.Domain.Entities;
+using BudgetTracker.Core.Domain.Models.Request.Transaction;
 using BudgetTracker.Core.Domain.Repository;
 using BudgetTracker.Core.Domain.Service;
 using BudgetTracker.Core.Domain.UnitOfWork;
@@ -19,29 +20,11 @@ public class ContactAppService : IContactAppService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Contact?> CreateAsync(long accountId, ContactRequest request)
+    public async Task<Contact?> CreateAsync(long accountId, CreateContactRequest request)
     {
         try
         {
-            Address address = new()
-            {
-                City = request.City,
-                Country = request.Country,
-                CreatedAt = DateTime.UtcNow,
-                IsPrimary = request.IsPrimary,
-                State = request.State,
-                Street = request.Street,
-                ZipCode = request.ZipCode,
-            };
-
             var typeContactId = EnumHelper.GetId(request.TypeContact);
-
-            var savedAddress = await _addressRepository.AddAsync(address);
-
-            List<Address> listAddress = new List<Address>()
-            {
-                savedAddress,
-            };
 
             Contact contact = new Contact()
             {
@@ -53,17 +36,33 @@ public class ContactAppService : IContactAppService
                 Phone = request.Phone,
                 AccountId = accountId,
                 TypeContactId = typeContactId,
-                Address = listAddress
             };
 
+            _unitOfWork.BeginTransaction();
+
             var savedContact = await _contactRepository.AddAsync(contact);
+
+            Address address = new()
+            {
+                City = request.City,
+                Country = request.Country,
+                CreatedAt = DateTime.UtcNow,
+                IsPrimary = request.IsPrimary,
+                State = request.State,
+                Street = request.Street,
+                ZipCode = request.ZipCode,
+                ContactId = savedContact.Id,
+            };
+
+            await _addressRepository.AddAsync(address);
 
             _unitOfWork.Commit();
 
             return savedContact;
         }
-        catch (Exception ex)
+        catch
         {
+            _unitOfWork.Rollback();
             throw;
         }
     }
@@ -87,6 +86,7 @@ public class ContactAppService : IContactAppService
         {
             if (!long.TryParse(request.ContactId, out var id))
                 throw new ArgumentException("ContactId inválido");
+
             var existingContact = await _contactRepository.GetByIdAsync(id);
 
             if (existingContact == null || existingContact.AccountId != accountId)
@@ -104,12 +104,13 @@ public class ContactAppService : IContactAppService
                 UpdatedAt = DateTime.UtcNow,
             };
 
+            _unitOfWork.BeginTransaction();
             await _contactRepository.UpdateAsync(contact);
             _unitOfWork.Commit();
-
         }
-        catch (Exception ex)
+        catch
         {
+            _unitOfWork.Rollback();
             throw;
         }
     }
@@ -125,11 +126,11 @@ public class ContactAppService : IContactAppService
             if (contact == null || contact.AccountId != accountId)
                 throw new UnauthorizedAccessException("Contact not found or access denied");
 
+            _unitOfWork.BeginTransaction();
             await _contactRepository.DeleteAsync(id);
             _unitOfWork.Commit();
-
         }
-        catch (Exception ex)
+        catch
         {
             _unitOfWork.Rollback();
             throw;

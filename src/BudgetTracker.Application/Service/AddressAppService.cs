@@ -21,20 +21,28 @@ public class AddressAppService : IAddressAppService
 
     public async Task CreateAsync(AddressRequest addressRequest)
     {
-        Address address = new Address()
+        try
         {
-            CreatedAt = DateTime.UtcNow,
-            City = addressRequest.City,
-            Country = addressRequest.Country,
-            IsPrimary = addressRequest.IsPrimary,
-            State = addressRequest.State,
-            Street = addressRequest.Street,
-            ZipCode = addressRequest.ZipCode,
-        };
+            Address address = new Address()
+            {
+                CreatedAt = DateTime.UtcNow,
+                City = addressRequest.City,
+                Country = addressRequest.Country,
+                IsPrimary = addressRequest.IsPrimary,
+                State = addressRequest.State,
+                Street = addressRequest.Street,
+                ZipCode = addressRequest.ZipCode,
+            };
 
-        await _addressRepository.AddAsync(address);
-
-        _unitOfWork.Commit();
+            _unitOfWork.BeginTransaction();
+            await _addressRepository.AddAsync(address);
+            _unitOfWork.Commit();
+        }
+        catch
+        {
+            _unitOfWork.Rollback();
+            throw;
+        }
     }
 }
 

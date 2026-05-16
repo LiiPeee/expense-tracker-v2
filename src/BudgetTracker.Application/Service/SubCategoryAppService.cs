@@ -19,18 +19,26 @@ namespace BudgetTracker.Application.Service
 
         public async Task CreateAsync(long accountId, CreateSubCategoryRequest request)
         {
-            SubCategory subCategory = new SubCategory
+            try
             {
-                Name = request.Name,
-                CategoryId = request.CategoryId,
-                Description = request.Description,
-                IsActive = request.IsActive,
-                AccountId = accountId
-            };
+                SubCategory subCategory = new SubCategory
+                {
+                    Name = request.Name,
+                    CategoryId = request.CategoryId,
+                    Description = request.Description,
+                    IsActive = request.IsActive,
+                    AccountId = accountId
+                };
 
-            await _subCategoryRepository.AddAsync(subCategory);
-
-            _unitOfWork.Commit();
+                _unitOfWork.BeginTransaction();
+                await _subCategoryRepository.AddAsync(subCategory);
+                _unitOfWork.Commit();
+            }
+            catch
+            {
+                _unitOfWork.Rollback();
+                throw;
+            }
         }
 
         public async Task<IEnumerable<SubCategory>> GetAllAsync()

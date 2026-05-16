@@ -28,10 +28,10 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         INNER JOIN Category cat ON t.CategoryId = cat.Id
         INNER JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
         WHERE t.AccountId = @AccountId AND tp.Name = @Type AND cat.Name = @Category 
-            AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)
-            OR (t.DateOfInstallment IS NOT NULL AND MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year))
+            AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year)
+            OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year))
         ORDER BY t.Id DESC
-        OFFSET @OffSet ROWS FETCH NEXT @PageSize ROWS ONLY;
+        LIMIT @PageSize OFFSET @OffSet;
 
         SELECT COUNT(1)
         FROM Transactions t
@@ -39,8 +39,8 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         INNER JOIN Category cat ON t.CategoryId = cat.Id
         INNER JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
         WHERE t.AccountId = @AccountId AND tp.Name = @Type AND cat.Name = @Category 
-            AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)
-            OR (t.DateOfInstallment IS NOT NULL AND MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year));";
+            AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year)
+            OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year));";
 
         if (_db._connection.State != ConnectionState.Open)
         {
@@ -87,10 +87,10 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         INNER JOIN Category cat ON t.CategoryId = cat.Id
         INNER JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
         WHERE t.AccountId = @AccountId AND tp.Name = @Type 
-            AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)
-            OR (t.DateOfInstallment IS NOT NULL AND MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year))
+            AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year)
+            OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year))
         ORDER BY t.Id DESC
-        OFFSET @OffSet ROWS FETCH NEXT @PageSize ROWS ONLY;
+        LIMIT @PageSize OFFSET @OffSet;
 
         SELECT COUNT(1)
         FROM Transactions t
@@ -98,8 +98,8 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         INNER JOIN Category cat ON t.CategoryId = cat.Id
         INNER JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
         WHERE t.AccountId = @AccountId AND tp.Name = @Type 
-            AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)
-            OR (t.DateOfInstallment IS NOT NULL AND MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year));";
+            AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year)
+            OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year));";
 
         if (_db._connection.State != ConnectionState.Open)
         {
@@ -145,18 +145,18 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         INNER JOIN Contact ct ON t.ContactId = ct.Id
         INNER JOIN Category cat ON t.CategoryId = cat.Id
         WHERE t.AccountId = @AccountId 
-            AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)
-            OR (t.DateOfInstallment IS NOT NULL AND MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year))
+            AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year)
+            OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year))
         ORDER BY t.Id DESC
-        OFFSET @OffSet ROWS FETCH NEXT @PageSize ROWS ONLY;
+        LIMIT @PageSize OFFSET @OffSet;
 
         SELECT COUNT(1)
         FROM Transactions t
         INNER JOIN Contact ct ON t.ContactId = ct.Id
         INNER JOIN Category cat ON t.CategoryId = cat.Id
         WHERE t.AccountId = @AccountId 
-            AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)
-            OR (t.DateOfInstallment IS NOT NULL AND MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year));";
+            AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year)
+            OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year));";
 
         if (_db._connection.State != ConnectionState.Open)
         {
@@ -205,10 +205,10 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         INNER JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
         WHERE t.AccountId = @AccountId AND tp.Name = @Type 
             AND ct.Name = @ContactName
-            AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)
-            OR (t.DateOfInstallment IS NOT NULL AND MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year))
+            AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year)
+            OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year))
         ORDER BY t.Id DESC
-        OFFSET @OffSet ROWS FETCH NEXT @PageSize ROWS ONLY;
+        LIMIT @PageSize OFFSET @OffSet;
 
         SELECT COUNT(1)
         FROM Transactions t
@@ -216,8 +216,8 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         INNER JOIN Category cat ON t.CategoryId = cat.Id
         INNER JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
         WHERE t.AccountId = @AccountId AND tp.Name = @Type 
-            AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year)
-            OR (t.DateOfInstallment IS NOT NULL AND MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year));";
+            AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year)
+            OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year));";
 
         if (_db._connection.State != ConnectionState.Open)
         {
@@ -253,8 +253,8 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
     {
         var query = @"SELECT * FROM Transactions t
         WHERE t.AccountId = @AccountId 
-            AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year) 
-            OR (t.DateOfInstallment IS NOT NULL AND MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year))
+            AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year) 
+            OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year))
             AND t.TypeTransactionId = 1";
 
         if (_db._connection.State == ConnectionState.Open)
@@ -272,8 +272,8 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
     {
         var query = @"SELECT * FROM Transactions t
         WHERE t.AccountId = @AccountId 
-            AND ((t.DateOfInstallment IS NULL AND MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year) 
-            OR (t.DateOfInstallment IS NOT NULL AND MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year))
+            AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year) 
+            OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year))
             AND t.TypeTransactionId = 2";
 
         if (_db._connection.State == ConnectionState.Open)
@@ -293,8 +293,8 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         FROM Transactions t 
         LEFT JOIN Contact ct ON t.ContactId = ct.Id
         WHERE t.AccountId = @AccountId 
-            AND ((MONTH(t.CreatedAt) = @Month AND YEAR(t.CreatedAt) = @Year) 
-            OR (MONTH(t.DateOfInstallment) = @Month AND YEAR(t.DateOfInstallment) = @Year))";
+            AND ((EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year) 
+            OR (EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year))";
 
         if (_db._connection.State == ConnectionState.Open)
         {

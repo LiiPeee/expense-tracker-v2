@@ -48,14 +48,14 @@ public class TransactionsAppService : ITransactionsAppService
             }
 
             var subCategory = await _subCategoryRepository.GetByNameAsync(transactionRequest.SubCategoryName)
-                ?? await _subCategoryRepository.AddAsync(new SubCategory { Name = transactionRequest.SubCategoryName, IsActive = true, CategoryId = category.Id, AccountId = accountId});
+                ?? await _subCategoryRepository.AddAsync(new SubCategory { Name = transactionRequest.SubCategoryName, IsActive = true, CategoryId = category.Id, AccountId = accountId });
 
             var recurrenceId = EnumHelper.GetId(transactionRequest.Recurrence);
             var typeTransactionId = EnumHelper.GetId(transactionRequest.TypeTransaction);
 
             if (transactionRequest.NumberOfInstallment > 0)
             {
-                return await CreateInstallemntsAsync(transactionRequest, category.Id, contact.Id, recurrenceId, typeTransactionId, accountId);
+                return await CreateInstallemntsAsync(transactionRequest, category.Id, contact.Id, recurrenceId, typeTransactionId, accountId, subCategory.Id);
             }
 
             Transactions transaction = new()
@@ -65,6 +65,7 @@ public class TransactionsAppService : ITransactionsAppService
                 Name = transactionRequest.TransactionName,
                 CategoryId = category.Id,
                 ContactId = contact.Id,
+                SubCategoryId = subCategory.Id,
                 Description = transactionRequest.Description,
                 NumberOfInstallment = transactionRequest.NumberOfInstallment,
                 Paid = false,
@@ -375,7 +376,7 @@ public class TransactionsAppService : ITransactionsAppService
 
         var transactions = await _transactionRepository.FilterByMonthAndContactAsync(accountId, year, month, type.ToString(), contactName, pageNumber);
 
-        if(transactions.Items.Count == 0) throw new KeyNotFoundException("we cannot find transactions");
+        if (transactions.Items.Count == 0) throw new KeyNotFoundException("we cannot find transactions");
 
         var filter = new List<FilterByMonthAndYearOutPut>();
 
@@ -437,7 +438,7 @@ public class TransactionsAppService : ITransactionsAppService
         }
     }
 
-    private async Task<List<Transactions>> CreateInstallemntsAsync(CreateTrasactionRequest request, long category, long contactId, long recurrenceId, long typeTransactionId, long accountId)
+    private async Task<List<Transactions>> CreateInstallemntsAsync(CreateTrasactionRequest request, long category, long contactId, long recurrenceId, long typeTransactionId, long accountId, long? subCategoryId)
     {
         try
         {
@@ -455,6 +456,7 @@ public class TransactionsAppService : ITransactionsAppService
                     Name = request.TransactionName,
                     CategoryId = category,
                     ContactId = contactId,
+                    SubCategoryId = subCategoryId,
                     QuantityInstallment = $"{i}/{request.NumberOfInstallment}",
                     DateOfInstallment = dateInstallemnts,
                     Description = request.Description,

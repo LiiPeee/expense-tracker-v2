@@ -9,15 +9,15 @@ namespace BudgetTracker.Application
 {
     public static class EnumHelper
     {
-        public static int GetId<TEnum>(string enumName) where TEnum :struct, Enum
+        public static int GetId<TEnum>(string enumName) where TEnum : struct, Enum
         {
-            if(Enum.TryParse<TEnum>(enumName, out var enumValue))
+            if (Enum.TryParse<TEnum>(enumName, out var enumValue))
             {
                 return Convert.ToInt32(enumValue);
             }
             throw new Exception($"{enumName} is not supported.");
         }
-        public static int GetId<TEnum>(TEnum enumValue) where TEnum : struct, Enum 
+        public static int GetId<TEnum>(TEnum enumValue) where TEnum : struct, Enum
         {
             return Convert.ToInt32(enumValue);
         }
@@ -25,7 +25,7 @@ namespace BudgetTracker.Application
         {
             switch (category)
             {
-                case "AlimentaÁ„o":
+                case "Alimenta√ß√£o":
                     return Categories.ALIMENTACAO.ToString();
                 case "Conforto":
                     return Categories.CONFORTO.ToString();
@@ -33,9 +33,9 @@ namespace BudgetTracker.Application
                     return Categories.MORADIA.ToString();
                 case "Transporte":
                     return Categories.TRANSPORTE.ToString();
-                case "Sa˙de":
+                case "Sa√∫de":
                     return Categories.SAUDE.ToString();
-                case "EducaÁ„o":
+                case "Educa√ß√£o":
                     return Categories.EDUCACAO.ToString();
                 case "Lazer":
                     return Categories.LAZER.ToString();
@@ -45,14 +45,14 @@ namespace BudgetTracker.Application
                     return Categories.INVESTIMENTO.ToString();
                 case "Outros":
                     return Categories.OUTROS.ToString();
-                case "Renda Vari·vel":
+                case "Renda vari√°vel":
                     return Categories.RENDA_VARIAVEL.ToString();
-                case "BenefÌcios":
+                case "Benef√≠cios":
                     return Categories.BENEFICIOS.ToString();
-                case "Sal·rio":
+                case "Sal√°rio":
                     return Categories.SALARIO.ToString();
                 default:
-                    throw new Exception($"{category} n„o È uma categoria suportada.");
+                    throw new Exception($"{category} n√£o √© uma categoria suportada.");
             }
         }
     }

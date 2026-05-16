@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using BudgetTracker.Application.Dtos.Request;
 using BudgetTracker.Core.Domain.Entities;
+using BudgetTracker.Core.Domain.Models.Request.Transaction;
 using BudgetTracker.Core.Domain.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +20,7 @@ namespace BudgetTracker.WebApi.Controller
         }
 
         [HttpPost("[action]")]
-        public async Task<Contact?> CreateAsync([FromBody] ContactRequest contactRequest)
+        public async Task<Contact?> CreateAsync([FromBody] CreateContactRequest contactRequest)
         {
             var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 

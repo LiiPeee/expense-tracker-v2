@@ -11,7 +11,7 @@ public class EmailService(IConfiguration configuration) : IEmailService
     private readonly IConfiguration _config = configuration;
 
 
-    public async Task SendCodeToEmailAsync(string email,string id, string token)
+    public async Task SendCodeToEmailAsync(string email, string id, string token)
     {
         var url = $"{_config["FrontEndUrl"]}/verify-email/{id}";
         var htmlBody = $@"
@@ -35,8 +35,8 @@ public class EmailService(IConfiguration configuration) : IEmailService
                     </p>
                     <div style='text-align:center; margin:32px 0;'>
                         <a href='{url}'
-                           style='background:#4F46E5; color:#fff; padding:14px 32px;
-                                  border-radius:6px; font-size:16px; text-decoration:none;'>
+                        style='background:#4F46E5; color:#fff; padding:14px 32px;
+                        border-radius:6px; font-size:16px; text-decoration:none;'>
                             Verificar minha conta
                         </a>
                     </div>
@@ -56,8 +56,7 @@ public class EmailService(IConfiguration configuration) : IEmailService
             From = new MailAddress(_config["EmailSender:From"]),
             Subject = "Account Confirmation",
             Body = htmlBody,
-            IsBodyHtml = true
-
+            IsBodyHtml = true,
         };
         message.To.Add(email);
 
@@ -68,7 +67,8 @@ public class EmailService(IConfiguration configuration) : IEmailService
                 _config["EmailSender:Username"],
                 _config["EmailSender:Password"]
             ),
-            EnableSsl = true
+            EnableSsl = true,
+            UseDefaultCredentials = false,
         };
         await smtp.SendMailAsync(message);
     }

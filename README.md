@@ -18,8 +18,8 @@ Sistema de controle financeiro desenvolvido em .NET 9 com C# 13.0, permitindo ge
 
 - **.NET 9.0**
 - **C# 13.0**
-- **Entity Framework Core  **
-- **SQL Server**            
+- **Dapper**
+- **PostgreSQL**
 - **JWT Authentication**
 - **Swagger/OpenAPI**
 - **ASP.NET Core Web API**
@@ -36,395 +36,84 @@ O projeto segue uma arquitetura em camadas:
 ## 📦 Pré-requisitos
 
 - [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
-- [SQL Server 2019+](https://www.microsoft.com/sql-server/sql-server-downloads) ou SQL Server Docker
+- [PostgreSQL 16+](https://www.postgresql.org/download/) ou PostgreSQL via Docker
 - [Visual Studio 2022+](https://visualstudio.microsoft.com/) ou [VS Code](https://code.visualstudio.com/)
 - [Git](https://git-scm.com/)
 
 ## 💾 Configuração do Banco de Dados
 
-### 1. SQL Server via Docker (Recomendado)
+### 1. PostgreSQL via Docker (Recomendado)
 
 ```bash
-docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=Abc12345!" -p 1433:1433 --name sqlserver -d mcr.microsoft.com/mssql/server:2019-latest
+docker run -d \
+  --name postgres \
+  -e POSTGRES_USER=admin \
+  -e POSTGRES_PASSWORD=senha123 \
+  -e POSTGRES_DB=budgettracker \
+  -p 5432:5432 \
+  -v postgres_data:/var/lib/postgresql/data \
+  postgres:16
 ```
 
 Ou usando Docker Compose (criar arquivo `docker-compose.yml` na raiz):
 
 ```yaml
 services:
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: sqlserver
+  postgres:
+    image: postgres:16
+    container_name: postgres
     environment:
-      ACCEPT_EULA: "Y"
-      SA_PASSWORD: "Abc12345!"
-      MSSQL_PID: "Developer"
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: senha123
+      POSTGRES_DB: budgettracker
     ports:
-      - "1433:1433"
+      - "5432:5432"
     volumes:
-      - sql_data:/var/opt/mssql
+      - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
 volumes:
-  sql_data:
+  postgres_data:
 ```
 
 Execute: `docker-compose up -d`
 
 ### 2. Criar o Banco de Dados
 
-Crie o banco com este comando isolado:
+Conecte ao servidor PostgreSQL e execute:
 
 ```sql
-CREATE DATABASE BudgetTracker;
+CREATE DATABASE budgettracker;
 ```
 
-Depois, abra uma nova consulta conectada ao banco `BudgetTracker` e execute os scripts de tabelas abaixo.
+Em seguida, conecte ao banco criado e execute os scripts de tabelas abaixo.
 
-Se o seu cliente SQL permitir trocar o contexto da conexão por comando, você pode executar antes:
+### 3. Executar o Script de Criação
 
-```sql
-USE BudgetTracker;
+Conecte ao banco `budgettracker` e execute o arquivo `database/init.sql`. Ele cria todas as tabelas e insere os dados de lookup necessários.
+
+```bash
+psql "sua-connection-string" -f database/init.sql
 ```
 
-### 3. Estrutura das Tabelas
+Ou copie o conteúdo do arquivo e cole no Query Editor do Render/Neon.
 
-#### Tabela: Account
+> O script usa `CREATE TABLE IF NOT EXISTS` e `ON CONFLICT DO NOTHING` — é seguro rodar mais de uma vez.
 
-```sql
-CREATE TABLE Account (
-    Id BIGINT PRIMARY KEY IDENTITY(1,1),
-    FirstName NVARCHAR(100) NOT NULL,
-    LastName NVARCHAR(100) NOT NULL,
-    Email NVARCHAR(255) NOT NULL UNIQUE,
-    Password NVARCHAR(MAX) NOT NULL,
-    Balance DECIMAL(18,2) NOT NULL DEFAULT 0,
-    Role NVARCHAR(50) NOT NULL DEFAULT 'User',
-    RefreshToken NVARCHAR(MAX) NULL,
-    RefreshTokenExpiryTime DATETIMEOFFSET NULL,
-    IsActive BIT NOT NULL DEFAULT 1,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL
-);
-```
+### 4. Estrutura das Tabelas (referência)
 
-#### Tabela: Category
-
-```sql
-CREATE TABLE Category (
-    Id BIGINT PRIMARY KEY IDENTITY(1,1),
-    Name NVARCHAR(100) NOT NULL,
-    Description NVARCHAR(MAX) NULL,
-    IsActive BIT NOT NULL DEFAULT 1,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL
-);
-
--- Inserir categorias padrão
-INSERT INTO Category (Name, Description, IsActive) VALUES
-('ALIMENTACAO', 'Gastos com alimentação', 1),
-('CONFORTO', 'Gastos com conforto', 1),
-('MORADIA', 'Gastos com moradia', 1),
-('TRANSPORTE', 'Gastos com transporte', 1),
-('SAUDE', 'Gastos com saúde', 1),
-('EDUCACAO', 'Gastos com educação', 1),
-('LAZER', 'Gastos com lazer', 1),
-('BENS_PESSOAIS', 'Gastos com bens pessoais', 1),
-('INVESTIMENTO', 'Investimentos', 1),
-('OUTROS', 'Outros gastos', 1),
-('RENDA_VARIAVEL', 'Renda variável', 1),
-('BENEFICIOS', 'Benefícios', 1),
-('SALARIO', 'Salário', 1);
-```
-
-#### Tabela: SubCategory
-
-```sql
-CREATE TABLE SubCategory (
-    Id BIGINT PRIMARY KEY IDENTITY(1,1),
-    Name NVARCHAR(100) NOT NULL,
-    Description NVARCHAR(MAX) NULL,
-    IsActive BIT NOT NULL DEFAULT 1,
-    CategoryId BIGINT NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL,
-    FOREIGN KEY (CategoryId) REFERENCES Category(Id)
-);
-```
-
-#### Tabela: TypeContact
-
-```sql
-CREATE TABLE TypeContact (
-    Id BIGINT PRIMARY KEY IDENTITY(1,1),
-    Name NVARCHAR(100) NOT NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL
-);
-
--- Inserir tipos de contato
-INSERT INTO TypeContact (Name) VALUES ('PERSONAL'), ('BUSINESS');
-```
-
-#### Tabela: Contact
-
-```sql
-CREATE TABLE Contact (
-    Id BIGINT PRIMARY KEY IDENTITY(1,1),
-    Name NVARCHAR(200) NOT NULL,
-    Email NVARCHAR(255) NULL,
-    Phone NVARCHAR(20) NULL,
-    Document NVARCHAR(50) NULL,
-    IsActive BIT NOT NULL DEFAULT 1,
-    AccountId BIGINT NOT NULL,
-    TypeContactId BIGINT NOT NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL,
-    FOREIGN KEY (AccountId) REFERENCES Account(Id),
-    FOREIGN KEY (TypeContactId) REFERENCES TypeContact(Id)
-);
-```
-
-#### Tabela: Address
-
-```sql
-CREATE TABLE Address (
-    Id BIGINT PRIMARY KEY IDENTITY(1,1),
-    Street NVARCHAR(200) NOT NULL,
-    City NVARCHAR(100) NOT NULL,
-    State NVARCHAR(50) NOT NULL,
-    ZipCode NVARCHAR(20) NOT NULL,
-    Country NVARCHAR(100) NOT NULL,
-    IsPrimary BIT NOT NULL DEFAULT 0,
-    ContactId BIGINT NOT NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL,
-    FOREIGN KEY (ContactId) REFERENCES Contact(Id)
-);
-```
-
-#### Tabela: TypeTransaction
-
-```sql
-CREATE TABLE TypeTransaction (
-    Id BIGINT PRIMARY KEY IDENTITY(1,1),
-    Name NVARCHAR(100) NOT NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL
-);
-
--- Inserir tipos de transação
-INSERT INTO TypeTransaction (Name) VALUES ('EXPENSE'), ('INCOME');
-```
-
-#### Tabela: Recurrence
-
-```sql
-CREATE TABLE Recurrence (
-    Id BIGINT PRIMARY KEY IDENTITY(1,1),
-    Name NVARCHAR(50) NOT NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL
-);
-
--- Inserir tipos de recorrência
-INSERT INTO Recurrence (Name) VALUES ('NONE'), ('DAILY'), ('BiWeekly'), ('Monthly');
-```
-
-#### Tabela: Transactions
-
-```sql
-CREATE TABLE Transactions (
-    Id BIGINT PRIMARY KEY IDENTITY(1,1),
-    Amount DECIMAL(18,2) NOT NULL,
-    Name NVARCHAR(200) NOT NULL,
-    Description NVARCHAR(MAX) NOT NULL,
-    Paid BIT NOT NULL DEFAULT 0,
-    NumberOfInstallment BIGINT NULL,
-    DateOfInstallment DATETIME2 NULL,
-    QuantityInstallment NVARCHAR(20) NULL,
-    RecurrenceId BIGINT NOT NULL,
-    ContactId BIGINT NULL,
-    AccountId BIGINT NOT NULL,
-    CategoryId BIGINT NOT NULL,
-    TypeTransactionId BIGINT NOT NULL,
-    SubCategoryId BIGINT NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL,
-    FOREIGN KEY (AccountId) REFERENCES Account(Id),
-    FOREIGN KEY (CategoryId) REFERENCES Category(Id),
-    FOREIGN KEY (ContactId) REFERENCES Contact(Id),
-    FOREIGN KEY (SubCategoryId) REFERENCES SubCategory(Id),
-    FOREIGN KEY (RecurrenceId) REFERENCES Recurrence(Id),
-    FOREIGN KEY (TypeTransactionId) REFERENCES TypeTransaction(Id)
-);
-
-CREATE TABLE ResetPassowrd(
-    Id BIGINT PRIMARY KEY IDENTITY(1,1),
-    AccountId BIGINT NOT NULL,
-    HashedToken VARCHAR(100) NULL,
-   	FOREIGN KEY (AccountId) REFERENCES Account(Id)
-);
-CREATE TABLE  ResetPassword(
-    Id BIGINT PRIMARY KEY IDENTITY(1,1),
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    UpdatedAt DATETIME2 NULL,
-    AccountId BIGINT NOT NULL,
-    HashedToken VARCHAR(100),
-   	ExpireAt DATETIME NULL,
-);
-
-```
-
-### 4. Script Completo de Criação
-
-Use os comandos abaixo em duas etapas para evitar erros em clientes que não suportam `GO`.
-
-#### Etapa 1: criar o banco
-
-Execute este comando isoladamente:
-
-```sql
-IF DB_ID('ExpenseTracker') IS NULL
-BEGIN
-  CREATE DATABASE ExpenseTracker;
-END;
-```
-
-#### Etapa 2: criar tabelas e dados iniciais
-
-Abra uma nova consulta já conectada ao banco `ExpenseTracker` e execute:
-
-```sql
-CREATE TABLE Account (
-  Id BIGINT PRIMARY KEY IDENTITY(1,1),
-  FirstName NVARCHAR(100) NOT NULL,
-  LastName NVARCHAR(100) NOT NULL,
-  Email NVARCHAR(255) NOT NULL UNIQUE,
-  Password NVARCHAR(MAX) NOT NULL,
-  Balance DECIMAL(18,2) NOT NULL DEFAULT 0,
-  Role NVARCHAR(50) NOT NULL DEFAULT 'User',
-  RefreshToken NVARCHAR(MAX) NULL,
-  RefreshTokenExpiryTime DATETIMEOFFSET NULL,
-  IsActive BIT NOT NULL DEFAULT 1,
-  CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-  UpdatedAt DATETIME2 NULL
-);
-
-CREATE TABLE Category (
-  Id BIGINT PRIMARY KEY IDENTITY(1,1),
-  Name NVARCHAR(100) NOT NULL,
-  Description NVARCHAR(MAX) NULL,
-  IsActive BIT NOT NULL DEFAULT 1,
-  CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-  UpdatedAt DATETIME2 NULL
-);
-
-CREATE TABLE SubCategory (
-  Id BIGINT PRIMARY KEY IDENTITY(1,1),
-  Name NVARCHAR(100) NOT NULL,
-  Description NVARCHAR(MAX) NULL,
-  IsActive BIT NOT NULL DEFAULT 1,
-  CategoryId BIGINT NULL,
-  CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-  UpdatedAt DATETIME2 NULL,
-  FOREIGN KEY (CategoryId) REFERENCES Category(Id)
-);
-
-CREATE TABLE TypeContact (
-  Id BIGINT PRIMARY KEY IDENTITY(1,1),
-  Name NVARCHAR(100) NOT NULL,
-  CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-  UpdatedAt DATETIME2 NULL
-);
-
-CREATE TABLE Contact (
-  Id BIGINT PRIMARY KEY IDENTITY(1,1),
-  Name NVARCHAR(200) NOT NULL,
-  Email NVARCHAR(255) NULL,
-  Phone NVARCHAR(20) NULL,
-  Document NVARCHAR(50) NULL,
-  IsActive BIT NOT NULL DEFAULT 1,
-  AccountId BIGINT NOT NULL,
-  TypeContactId BIGINT NOT NULL,
-  CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-  UpdatedAt DATETIME2 NULL,
-  FOREIGN KEY (AccountId) REFERENCES Account(Id),
-  FOREIGN KEY (TypeContactId) REFERENCES TypeContact(Id)
-);
-
-CREATE TABLE Address (
-  Id BIGINT PRIMARY KEY IDENTITY(1,1),
-  Street NVARCHAR(200) NOT NULL,
-  City NVARCHAR(100) NOT NULL,
-  State NVARCHAR(50) NOT NULL,
-  ZipCode NVARCHAR(20) NOT NULL,
-  Country NVARCHAR(100) NOT NULL,
-  IsPrimary BIT NOT NULL DEFAULT 0,
-  ContactId BIGINT NOT NULL,
-  CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-  UpdatedAt DATETIME2 NULL,
-  FOREIGN KEY (ContactId) REFERENCES Contact(Id)
-);
-
-CREATE TABLE TypeTransaction (
-  Id BIGINT PRIMARY KEY IDENTITY(1,1),
-  Name NVARCHAR(100) NOT NULL,
-  CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-  UpdatedAt DATETIME2 NULL
-);
-
-CREATE TABLE Recurrence (
-  Id BIGINT PRIMARY KEY IDENTITY(1,1),
-  Name NVARCHAR(50) NOT NULL,
-  CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-  UpdatedAt DATETIME2 NULL
-);
-
-CREATE TABLE Transactions (
-  Id BIGINT PRIMARY KEY IDENTITY(1,1),
-  Amount DECIMAL(18,2) NOT NULL,
-  Name NVARCHAR(200) NOT NULL,
-  Description NVARCHAR(MAX) NOT NULL,
-  Paid BIT NOT NULL DEFAULT 0,
-  NumberOfInstallment BIGINT NULL,
-  DateOfInstallment DATETIME2 NULL,
-  QuantityInstallment NVARCHAR(20) NULL,
-  RecurrenceId BIGINT NOT NULL,
-  ContactId BIGINT NULL,
-  AccountId BIGINT NOT NULL,
-  CategoryId BIGINT NOT NULL,
-  TypeTransactionId BIGINT NOT NULL,
-  SubCategoryId BIGINT NULL,
-  CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-  UpdatedAt DATETIME2 NULL,
-  FOREIGN KEY (AccountId) REFERENCES Account(Id),
-  FOREIGN KEY (CategoryId) REFERENCES Category(Id),
-  FOREIGN KEY (ContactId) REFERENCES Contact(Id),
-  FOREIGN KEY (SubCategoryId) REFERENCES SubCategory(Id),
-  FOREIGN KEY (RecurrenceId) REFERENCES Recurrence(Id),
-  FOREIGN KEY (TypeTransactionId) REFERENCES TypeTransaction(Id)
-);
-
-INSERT INTO Category (Name, Description, IsActive) VALUES
-('ALIMENTACAO', 'Gastos com alimentação', 1),
-('CONFORTO', 'Gastos com conforto', 1),
-('MORADIA', 'Gastos com moradia', 1),
-('TRANSPORTE', 'Gastos com transporte', 1),
-('SAUDE', 'Gastos com saúde', 1),
-('EDUCACAO', 'Gastos com educação', 1),
-('LAZER', 'Gastos com lazer', 1),
-('BENS_PESSOAIS', 'Gastos com bens pessoais', 1),
-('INVESTIMENTO', 'Investimentos', 1),
-('OUTROS', 'Outros gastos', 1),
-('RENDA_VARIAVEL', 'Renda variável', 1),
-('BENEFICIOS', 'Benefícios', 1),
-('SALARIO', 'Salário', 1);
-
-INSERT INTO TypeContact (Name) VALUES ('PERSONAL'), ('BUSINESS');
-INSERT INTO TypeTransaction (Name) VALUES ('EXPENSE'), ('INCOME');
-INSERT INTO Recurrence (Name) VALUES ('NONE'), ('DAILY'), ('BiWeekly'), ('Monthly');
-```
+| Tabela | Descrição |
+|---|---|
+| `Account` | Usuários do sistema |
+| `Category` | Categorias fixas (ALIMENTACAO, MORADIA, etc.) |
+| `SubCategory` | Subcategorias criadas pelo usuário, vinculadas a Category e Account |
+| `Contact` | Contatos (fornecedores/clientes) vinculados à Account |
+| `Address` | Endereços vinculados a Contact |
+| `Transactions` | Transações financeiras |
+| `TypeTransaction` | Lookup: EXPENSE (1), INCOME (2) |
+| `TypeContact` | Lookup: PERSONAL (1), BUSINESS (2) |
+| `Recurrence` | Lookup: NONE (1), DAILY (2), BIWEEKLY (3), MONTHLY (4) |
+| `ResetPassword` | Tokens de redefinição de senha |
 
 ## 🔧 Instalação
 
@@ -442,7 +131,7 @@ Edite o arquivo `src/BudgetTracker.WebApi/appsettings.json`:
 ```json
 {
   "ConnectionStrings": {
-    "BudgetTracker": "Server=localhost,1433;Database=BudgetTracker;User Id=sa;Password=SUA_SENHA;TrustServerCertificate=True;"
+    "BudgetTracker": "Host=localhost;Port=5432;Database=budgettracker;Username=admin;Password=senha123;"
   },
   "Jwt": {
     "Token": "sua-chave-secreta-jwt-aqui-deve-ser-longa-e-segura",
@@ -458,13 +147,6 @@ Edite o arquivo `src/BudgetTracker.WebApi/appsettings.json`:
 
 ```bash
 dotnet restore
-```
-
-### 4. Aplicar Migrations (se houver)
-
-```bash
-cd src/BudgetTracker.Infrastructure
-dotnet ef database update --startup-project ../BudgetTracker.WebApi
 ```
 
 ## ▶️ Executando o Projeto
@@ -666,9 +348,9 @@ dotnet test
 
 ### Erro de conexão com banco de dados
 
-- Verifique se o SQL Server está rodando
+- Verifique se o container PostgreSQL está rodando: `docker ps`
 - Confirme a connection string no `appsettings.json`
-- Teste a conexão com SQL Server Management Studio
+- Teste a conexão: `docker exec -it postgres psql -U admin -d budgettracker`
 
 ### Erro de autenticação JWT
 

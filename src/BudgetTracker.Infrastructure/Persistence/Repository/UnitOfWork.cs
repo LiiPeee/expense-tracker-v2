@@ -1,7 +1,6 @@
 using BudgetTracker.Core.Domain.Repository;
 using BudgetTracker.Core.Domain.UnitOfWork;
 using BudgetTracker.Core.Infrastructure.Repository;
-using Microsoft.Data.SqlClient;
 using System.Data;
 
 namespace BudgetTracker.Infrastructure.Persistence.Repository
@@ -36,19 +35,23 @@ namespace BudgetTracker.Infrastructure.Persistence.Repository
             finally
             {
                 _session._transaction?.Dispose();
+                _session._transaction = null;
             }
         }
       
         public void Rollback()
         {
+            if (_session._transaction == null) return;
+
             try
             {
                 _session._transaction.Rollback();
             }
-          
+            catch (ObjectDisposedException) { }
             finally
             {
                 _session._transaction?.Dispose();
+                _session._transaction = null;
             }
         }
         public void Dispose()

@@ -1,99 +1,567 @@
 using BudgetTracker.Application.Service;
 using BudgetTracker.Core.Domain.Entities;
+using BudgetTracker.Core.Domain.Models.Output;
 using BudgetTracker.Core.Domain.Models.Request.Account;
 using BudgetTracker.Core.Domain.Repository;
 using BudgetTracker.Core.Domain.UnitOfWork;
 using BudgetTracker.Core.Domain.Utils;
 using BudgetTracker.Core.Infrastructure.Repository;
 using BudgetTracker.Core.Infrastructure.Services;
-using BudgetTracker.Infrastructure.Persistence.Repository;
+using Microsoft.AspNet.Identity;
 using Microsoft.Extensions.Configuration;
 using Moq;
 
-namespace Test
+namespace Test;
+
+public class AuthServiceTest
 {
-    public class AuthServiceTest
+    private Mock<IAccountRepository>       _accountRepo;
+    private Mock<IResetPasswordRepository> _resetPasswordRepo;
+    private Mock<IPasswordHelper>          _passwordHelper;
+    private Mock<IEmailService>            _emailService;
+    private Mock<IUnitOfWork>              _unitOfWork;
+    private Mock<IConfiguration>           _configuration;
+    private AuthenticationAppService       _service;
+
+    // Senha real para testes de SignIn que usam PasswordHasher diretamente
+    private const string ValidPassword       = "ValidPass1!";
+    private static readonly string HashedValidPassword = new PasswordHasher().HashPassword(ValidPassword);
+
+    [SetUp]
+    public void Setup()
     {
-        private Mock<IAccountRepository> _accountRepository;
-        private Mock<IResetPasswordRepository> _resetPasswordRepository;
-        private Mock<IPasswordHelper> _passwordHelper;
-        private Mock<IEmailService> _emailService;
-        private Mock<IUnitOfWork> _unitOfWork;
-        private Mock<IConfiguration> _configuration;
-        private AuthenticationAppService _authService;
-        [SetUp]
-        public void Setup()
+        _accountRepo       = new Mock<IAccountRepository>();
+        _resetPasswordRepo = new Mock<IResetPasswordRepository>();
+        _passwordHelper    = new Mock<IPasswordHelper>();
+        _emailService      = new Mock<IEmailService>();
+        _unitOfWork        = new Mock<IUnitOfWork>();
+        _configuration     = new Mock<IConfiguration>();
+
+        _service = new AuthenticationAppService(
+            _accountRepo.Object,
+            _resetPasswordRepo.Object,
+            _passwordHelper.Object,
+            _emailService.Object,
+            _unitOfWork.Object,
+            _configuration.Object);
+    }
+
+    // Configura IConfiguration para geração de JWT
+    private void SetupJwt()
+    {
+        SetupConfigSection("Jwt:Token", "0123456789012345678901234567890123456789012345678901234567890123");
+        SetupConfigSection("Jwt:Issuer", "test-issuer");
+        SetupConfigSection("Jwt:Audience", "test-audience");
+        SetupConfigSection("Jwt:TokenExpirationMinutes", "60");
+        SetupConfigSection("Jwt:RefreshTokenExpirationMinutes", "60");
+    }
+
+    private void SetupConfigSection(string key, string value)
+    {
+        var section = new Mock<IConfigurationSection>();
+        section.Setup(s => s.Value).Returns(value);
+        _configuration.Setup(c => c.GetSection(key)).Returns(section.Object);
+    }
+
+    private static CreateAccountRequestDto BuildSignUpRequest(string email = "novo@test.com", string password = "ValidPass1!") => new()
+    {
+        Email     = email,
+        FirstName = "Test",
+        LastName  = "User",
+        Password  = password,
+    };
+
+    private Account BuildActiveAccount(long id = 1) => new()
+    {
+        Id             = id,
+        Email          = "user@test.com",
+        FirstName      = "Test",
+        LastName       = "User",
+        Password       = HashedValidPassword,
+        Role           = "User",
+        IsActive       = true,
+        EmailVerified  = true,
+        VerifyAttempts = 0,
+    };
+
+    // ── SignUpAsync ──────────────────────────────────────────────────────────
+
+    [Test]
+    public async Task SignUpAsync_ValidRequest_SendsVerificationEmailAndCommits()
+    {
+        var request = BuildSignUpRequest();
+
+        var savedAccount = new Account { Id = 1, Email = "novo@test.com", EmailVerificationToken = "token" };
+
+        _accountRepo.Setup(r => r.GetByEmailAsync(request.Email)).ReturnsAsync((Account?)null);
+        _accountRepo.Setup(r => r.AddAsync(It.IsAny<Account>())).ReturnsAsync(savedAccount);
+        _passwordHelper.Setup(p => p.GenerateVerificationCode()).Returns("123456");
+        _passwordHelper.Setup(p => p.EncryptUrl(It.IsAny<string>())).Returns("encrypted-id");
+
+        var result = await _service.SignUpAsync(request);
+
+        Assert.That(result, Is.EqualTo("We send a verification email for you"));
+        _unitOfWork.Verify(u => u.BeginTransaction(), Times.Once);
+        _unitOfWork.Verify(u => u.Commit(), Times.Once);
+        _emailService.Verify(e => e.SendCodeToEmailAsync(request.Email, "encrypted-id", "123456"), Times.Once);
+    }
+
+    [Test]
+    public async Task SignUpAsync_EmailAlreadyExists_ThrowsArgumentExceptionAndRollsBack()
+    {
+        var request = BuildSignUpRequest(email: "existe@test.com");
+        _accountRepo.Setup(r => r.GetByEmailAsync(request.Email)).ReturnsAsync(new Account { Id = 1 });
+
+        var ex = Assert.ThrowsAsync<ArgumentException>(() => _service.SignUpAsync(request));
+
+        Assert.That(ex!.Message, Does.Contain("already exist"));
+        _unitOfWork.Verify(u => u.Rollback(), Times.Once);
+        _unitOfWork.Verify(u => u.Commit(), Times.Never);
+    }
+
+    [Test]
+    public async Task SignUpAsync_EmptyPassword_ThrowsArgumentException()
+    {
+        var request = BuildSignUpRequest(password: "   ");
+        _accountRepo.Setup(r => r.GetByEmailAsync(It.IsAny<string>())).ReturnsAsync((Account?)null);
+
+        Assert.ThrowsAsync<ArgumentException>(() => _service.SignUpAsync(request));
+    }
+
+    [Test]
+    public async Task SignUpAsync_PasswordTooShort_ThrowsArgumentException()
+    {
+        var request = BuildSignUpRequest(password: "Ab1!");
+        _accountRepo.Setup(r => r.GetByEmailAsync(It.IsAny<string>())).ReturnsAsync((Account?)null);
+
+        Assert.ThrowsAsync<ArgumentException>(() => _service.SignUpAsync(request));
+    }
+
+    [Test]
+    public async Task SignUpAsync_PasswordTooLong_ThrowsArgumentException()
+    {
+        var request = BuildSignUpRequest(password: "AbcdefghijKlmno12345!");
+        _accountRepo.Setup(r => r.GetByEmailAsync(It.IsAny<string>())).ReturnsAsync((Account?)null);
+
+        Assert.ThrowsAsync<ArgumentException>(() => _service.SignUpAsync(request));
+    }
+
+    [Test]
+    public async Task SignUpAsync_NoUppercaseLetter_ThrowsArgumentException()
+    {
+        var request = BuildSignUpRequest(password: "validpass1!");
+        _accountRepo.Setup(r => r.GetByEmailAsync(It.IsAny<string>())).ReturnsAsync((Account?)null);
+
+        Assert.ThrowsAsync<ArgumentException>(() => _service.SignUpAsync(request));
+    }
+
+    [Test]
+    public async Task SignUpAsync_NoLowercaseLetter_ThrowsArgumentException()
+    {
+        var request = BuildSignUpRequest(password: "VALIDPASS1!");
+        _accountRepo.Setup(r => r.GetByEmailAsync(It.IsAny<string>())).ReturnsAsync((Account?)null);
+
+        Assert.ThrowsAsync<ArgumentException>(() => _service.SignUpAsync(request));
+    }
+
+    [Test]
+    public async Task SignUpAsync_RepositoryThrows_RollsBack()
+    {
+        var request = BuildSignUpRequest();
+        _accountRepo.Setup(r => r.GetByEmailAsync(It.IsAny<string>())).ReturnsAsync((Account?)null);
+        _accountRepo.Setup(r => r.AddAsync(It.IsAny<Account>())).ThrowsAsync(new Exception("db error"));
+        _passwordHelper.Setup(p => p.GenerateVerificationCode()).Returns("code");
+
+        Assert.ThrowsAsync<Exception>(() => _service.SignUpAsync(request));
+
+        _unitOfWork.Verify(u => u.Rollback(), Times.Once);
+    }
+
+    // ── VerifyTokenAsync ─────────────────────────────────────────────────────
+
+    [Test]
+    public async Task VerifyTokenAsync_ValidToken_ActivatesAccountAndCommits()
+    {
+        var account = new Account
         {
-            _accountRepository = new Mock<IAccountRepository>();
-            _resetPasswordRepository = new Mock<IResetPasswordRepository>();
-            _passwordHelper = new Mock<IPasswordHelper>();
-            _emailService = new Mock<IEmailService>();
-            _unitOfWork = new Mock<IUnitOfWork>();
-            _configuration = new Mock<IConfiguration>();
+            Id = 1,
+            EmailVerificationToken = "valid-token",
+            EmailVerificationTokenExpiry = DateTime.UtcNow.AddHours(1),
+            VerifyAttempts = 0,
+        };
 
-            _authService = new AuthenticationAppService(_accountRepository.Object, _resetPasswordRepository.Object, _passwordHelper.Object, _emailService.Object, _unitOfWork.Object, _configuration.Object);
-        }
+        _passwordHelper.Setup(p => p.DecryptUrl("encrypted-id")).Returns("1");
+        _accountRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(account);
+        _accountRepo.Setup(r => r.UpdateAsync(It.IsAny<Account>())).ReturnsAsync(true);
 
-        [Test]
-        public async Task SignUp()
+        var result = await _service.VerifyTokenAsync(new VerifyTokenRequestDto { Id = "encrypted-id", Token = "valid-token" });
+
+        Assert.That(result, Is.EqualTo("Your email has been verified successfully"));
+        Assert.That(account.IsActive, Is.True);
+        Assert.That(account.EmailVerified, Is.True);
+        _unitOfWork.Verify(u => u.BeginTransaction(), Times.Once);
+        _unitOfWork.Verify(u => u.Commit(), Times.Once);
+    }
+
+    [Test]
+    public async Task VerifyTokenAsync_AccountNotFound_ThrowsAndRollsBack()
+    {
+        _passwordHelper.Setup(p => p.DecryptUrl(It.IsAny<string>())).Returns("1");
+        _accountRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync((Account?)null);
+
+        Assert.ThrowsAsync<ArgumentException>(() =>
+            _service.VerifyTokenAsync(new VerifyTokenRequestDto { Id = "id", Token = "token" }));
+
+        _unitOfWork.Verify(u => u.Rollback(), Times.Once);
+    }
+
+    [Test]
+    public async Task VerifyTokenAsync_ExceedsAttempts_ThrowsAndRollsBack()
+    {
+        var account = new Account { Id = 1, VerifyAttempts = 6, EmailVerificationToken = "t" };
+        _passwordHelper.Setup(p => p.DecryptUrl(It.IsAny<string>())).Returns("1");
+        _accountRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(account);
+
+        Assert.ThrowsAsync<ArgumentException>(() =>
+            _service.VerifyTokenAsync(new VerifyTokenRequestDto { Id = "id", Token = "t" }));
+
+        _unitOfWork.Verify(u => u.Rollback(), Times.Once);
+    }
+
+    [Test]
+    public async Task VerifyTokenAsync_InvalidToken_ThrowsAndRollsBack()
+    {
+        var account = new Account { Id = 1, VerifyAttempts = 0, EmailVerificationToken = "correct-token" };
+        _passwordHelper.Setup(p => p.DecryptUrl(It.IsAny<string>())).Returns("1");
+        _accountRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(account);
+
+        var ex = Assert.ThrowsAsync<ArgumentException>(() =>
+            _service.VerifyTokenAsync(new VerifyTokenRequestDto { Id = "id", Token = "wrong-token" }));
+
+        Assert.That(ex!.Message, Does.Contain("Invalid Token"));
+        _unitOfWork.Verify(u => u.Rollback(), Times.Once);
+    }
+
+    [Test]
+    public async Task VerifyTokenAsync_ExpiredToken_ThrowsAndRollsBack()
+    {
+        var account = new Account
         {
-            var request = new CreateAccountRequestDto() 
-            {
-                Email = "xpto@gmail",
-                FirstName = "xpto",
-                LastName = "xpto",
-                Password = "xpto@assaLddcc55"
-            };
-            
-            var account = new Account()
-            {
-                Id = 1,
-                Email = "xpto@gmail",
-                FirstName = "xpto",
-                LastName = "xpto",
-                Password = "xpto@assaLddcc55",
-                EmailVerificationToken = "token",
-                EmailVerificationTokenExpiry = DateTime.UtcNow.AddHours(24),
-            };
+            Id = 1,
+            VerifyAttempts = 0,
+            EmailVerificationToken = "token",
+            EmailVerificationTokenExpiry = DateTime.UtcNow.AddHours(-1),
+        };
 
-            _accountRepository.Setup(a => a.AddAsync(It.IsAny<Account>())).Returns(Task.FromResult(account));
-            _passwordHelper.Setup(p => p.EncryptUrl(account.Id.ToString())).Returns("hash");
-            var service = await _authService.SignUpAsync(request);
-            Assert.That(service, Is.EqualTo("We send a verification email for you"));
-        }
+        _passwordHelper.Setup(p => p.DecryptUrl(It.IsAny<string>())).Returns("1");
+        _accountRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(account);
 
-        [Test]
-        public async Task VerifyTokenAsync()
+        var ex = Assert.ThrowsAsync<ArgumentException>(() =>
+            _service.VerifyTokenAsync(new VerifyTokenRequestDto { Id = "id", Token = "token" }));
+
+        Assert.That(ex!.Message, Does.Contain("Expiry"));
+        _unitOfWork.Verify(u => u.Rollback(), Times.Once);
+    }
+
+    // ── VerifyEmailAsync ─────────────────────────────────────────────────────
+
+    [Test]
+    public async Task VerifyEmailAsync_ValidEmail_SendsResetEmailAndCommits()
+    {
+        var account = new Account { Id = 1, Email = "user@test.com" };
+        _accountRepo.Setup(r => r.GetByEmailAsync("user@test.com")).ReturnsAsync(account);
+        _passwordHelper.Setup(p => p.GenerateRefreshToken()).Returns("reset-token");
+        _passwordHelper.Setup(p => p.Encrypt(It.IsAny<string>())).Returns("encrypted");
+        _resetPasswordRepo.Setup(r => r.AddAsync(It.IsAny<ResetPassword>())).ReturnsAsync(new ResetPassword { Id = 1 });
+
+        var result = await _service.VerifyEmailAsync("user@test.com");
+
+        Assert.That(result, Is.EqualTo("Reset email sended"));
+        _unitOfWork.Verify(u => u.BeginTransaction(), Times.Once);
+        _unitOfWork.Verify(u => u.Commit(), Times.Once);
+        _emailService.Verify(e => e.SendVerificationEmailAsync("user@test.com", "encrypted"), Times.Once);
+    }
+
+    [Test]
+    public async Task VerifyEmailAsync_AccountNotFound_ThrowsAndRollsBack()
+    {
+        _accountRepo.Setup(r => r.GetByEmailAsync(It.IsAny<string>())).ReturnsAsync((Account?)null);
+
+        Assert.ThrowsAsync<ArgumentException>(() => _service.VerifyEmailAsync("naoexiste@test.com"));
+
+        _unitOfWork.Verify(u => u.Rollback(), Times.Once);
+    }
+
+    [Test]
+    public async Task VerifyEmailAsync_RepositoryThrows_RollsBack()
+    {
+        var account = new Account { Id = 1, Email = "user@test.com" };
+        _accountRepo.Setup(r => r.GetByEmailAsync(It.IsAny<string>())).ReturnsAsync(account);
+        _passwordHelper.Setup(p => p.GenerateRefreshToken()).Returns("token");
+        _passwordHelper.Setup(p => p.Encrypt(It.IsAny<string>())).Returns("encrypted");
+        _resetPasswordRepo.Setup(r => r.AddAsync(It.IsAny<ResetPassword>())).ThrowsAsync(new Exception("db error"));
+
+        Assert.ThrowsAsync<Exception>(() => _service.VerifyEmailAsync("user@test.com"));
+
+        _unitOfWork.Verify(u => u.Rollback(), Times.Once);
+    }
+
+    // ── ResetPasswordAsync ───────────────────────────────────────────────────
+
+    [Test]
+    public async Task ResetPasswordAsync_ValidToken_UpdatesPasswordAndCommits()
+    {
+        var account = new Account { Id = 1 };
+        var resetPassword = new ResetPassword { HashedToken = "raw-token", ExpireAt = DateTime.UtcNow.AddHours(1) };
+
+        _passwordHelper.Setup(p => p.Decrypt("encrypted")).Returns("raw-token|1");
+        _accountRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(account);
+        _resetPasswordRepo.Setup(r => r.GetByAccountIdAsync(1)).ReturnsAsync(resetPassword);
+        _accountRepo.Setup(r => r.UpdateAsync(It.IsAny<Account>())).ReturnsAsync(true);
+
+        var result = await _service.ResetPasswordAsync(new ResetPasswordRequestDto
         {
-            var account = new Account()
-            {
-                Id = 1,
-                Email = "xpto@gmail",
-                FirstName = "xpto",
-                LastName = "xpto",
-                Password = "hash",
-                EmailVerificationToken = "xpto",
-                VerifyAttempts = 0,
-                EmailVerificationTokenExpiry = DateTime.Now.AddHours(4),
-                IsActive = false,
-                EmailVerified = false,
-                VerifiedAt = null,
-            };
-            _accountRepository.Setup(a => a.GetByIdAsync(It.IsAny<long>()))
-                .ReturnsAsync(account);
-            _passwordHelper.Setup(x => x.DecryptUrl(It.IsAny<string>())).Returns("1");
+            Token       = "encrypted",
+            NewPassword = "NewValidPass1!"
+        });
 
-            _accountRepository.Setup(a => a.UpdateAsync(account)).Returns(Task.FromResult(true));
+        Assert.That(result, Is.EqualTo("Password Reseted"));
+        _unitOfWork.Verify(u => u.BeginTransaction(), Times.Once);
+        _unitOfWork.Verify(u => u.Commit(), Times.Once);
+    }
 
-            var request = new VerifyTokenRequestDto()
-            {
-                Id = "xpto@gmail",
-                Token = "xpto"
-            };
-            var service = await _authService.VerifyTokenAsync(request);
+    [Test]
+    public async Task ResetPasswordAsync_InvalidTokenFormat_ThrowsAndRollsBack()
+    {
+        _passwordHelper.Setup(p => p.Decrypt(It.IsAny<string>())).Returns("sem-separador");
 
-            Assert.That(service, Is.EqualTo("Your email has been verified successfully"));
-        }
+        Assert.ThrowsAsync<KeyNotFoundException>(() =>
+            _service.ResetPasswordAsync(new ResetPasswordRequestDto { Token = "x", NewPassword = "y" }));
+
+        _unitOfWork.Verify(u => u.Rollback(), Times.Once);
+    }
+
+    [Test]
+    public async Task ResetPasswordAsync_AccountNotFound_ThrowsAndRollsBack()
+    {
+        _passwordHelper.Setup(p => p.Decrypt(It.IsAny<string>())).Returns("token|1");
+        _accountRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync((Account?)null);
+
+        Assert.ThrowsAsync<KeyNotFoundException>(() =>
+            _service.ResetPasswordAsync(new ResetPasswordRequestDto { Token = "x", NewPassword = "y" }));
+
+        _unitOfWork.Verify(u => u.Rollback(), Times.Once);
+    }
+
+    [Test]
+    public async Task ResetPasswordAsync_ExpiredResetToken_ThrowsAndRollsBack()
+    {
+        var account       = new Account { Id = 1 };
+        var resetPassword = new ResetPassword { ExpireAt = DateTime.UtcNow.AddHours(-1) };
+
+        _passwordHelper.Setup(p => p.Decrypt(It.IsAny<string>())).Returns("token|1");
+        _accountRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(account);
+        _resetPasswordRepo.Setup(r => r.GetByAccountIdAsync(1)).ReturnsAsync(resetPassword);
+
+        Assert.ThrowsAsync<ArgumentException>(() =>
+            _service.ResetPasswordAsync(new ResetPasswordRequestDto { Token = "x", NewPassword = "y" }));
+
+        _unitOfWork.Verify(u => u.Rollback(), Times.Once);
+    }
+
+    // ── SignInAsync ──────────────────────────────────────────────────────────
+
+    [Test]
+    public async Task SignInAsync_ValidCredentials_ReturnsTokens()
+    {
+        SetupJwt();
+        var account = BuildActiveAccount();
+        _accountRepo.Setup(r => r.GetByEmailAsync(account.Email)).ReturnsAsync(account);
+        _passwordHelper.Setup(p => p.GenerateRefreshToken()).Returns("refresh-token");
+        _accountRepo.Setup(r => r.UpdateAsync(It.IsAny<Account>())).ReturnsAsync(true);
+
+        var result = await _service.SignInAsync(new LoginRequestDto { Email = account.Email, Password = ValidPassword });
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.AccessToken, Is.Not.Empty);
+        Assert.That(result.RefreshToken, Is.EqualTo("refresh-token"));
+    }
+
+    [Test]
+    public async Task SignInAsync_EmailNotFound_Throws()
+    {
+        _accountRepo.Setup(r => r.GetByEmailAsync(It.IsAny<string>())).ReturnsAsync((Account?)null);
+
+        var ex = Assert.ThrowsAsync<Exception>(() =>
+            _service.SignInAsync(new LoginRequestDto { Email = "x@test.com", Password = "any" }));
+
+        Assert.That(ex!.Message, Does.Contain("email is invalid"));
+    }
+
+    [Test]
+    public async Task SignInAsync_ExceedsAttempts_Throws()
+    {
+        var account = BuildActiveAccount();
+        account.VerifyAttempts = 6;
+        _accountRepo.Setup(r => r.GetByEmailAsync(account.Email)).ReturnsAsync(account);
+
+        var ex = Assert.ThrowsAsync<Exception>(() =>
+            _service.SignInAsync(new LoginRequestDto { Email = account.Email, Password = ValidPassword }));
+
+        Assert.That(ex!.Message, Does.Contain("exceeds attempts"));
+    }
+
+    [Test]
+    public async Task SignInAsync_WrongPassword_Throws()
+    {
+        var account = BuildActiveAccount();
+        _accountRepo.Setup(r => r.GetByEmailAsync(account.Email)).ReturnsAsync(account);
+
+        var ex = Assert.ThrowsAsync<Exception>(() =>
+            _service.SignInAsync(new LoginRequestDto { Email = account.Email, Password = "WrongPass1!" }));
+
+        Assert.That(ex!.Message, Does.Contain("password is invalid"));
+    }
+
+    [Test]
+    public async Task SignInAsync_AccountNotActive_Throws()
+    {
+        var account = BuildActiveAccount();
+        account.IsActive = false;
+        _accountRepo.Setup(r => r.GetByEmailAsync(account.Email)).ReturnsAsync(account);
+
+        var ex = Assert.ThrowsAsync<Exception>(() =>
+            _service.SignInAsync(new LoginRequestDto { Email = account.Email, Password = ValidPassword }));
+
+        Assert.That(ex!.Message, Does.Contain("not active"));
+    }
+
+    [Test]
+    public async Task SignInAsync_EmailNotVerified_Throws()
+    {
+        var account = BuildActiveAccount();
+        account.EmailVerified = false;
+        _accountRepo.Setup(r => r.GetByEmailAsync(account.Email)).ReturnsAsync(account);
+
+        var ex = Assert.ThrowsAsync<Exception>(() =>
+            _service.SignInAsync(new LoginRequestDto { Email = account.Email, Password = ValidPassword }));
+
+        Assert.That(ex!.Message, Does.Contain("not verified"));
+    }
+
+    // ── LogOutAsync ──────────────────────────────────────────────────────────
+
+    [Test]
+    public async Task LogOutAsync_ValidAccount_ClearsTokenAndCommits()
+    {
+        var account = BuildActiveAccount();
+        account.RefreshToken = "old-token";
+        _accountRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(account);
+        _accountRepo.Setup(r => r.UpdateAsync(It.IsAny<Account>())).ReturnsAsync(true);
+
+        var result = await _service.LogOutAsync(1);
+
+        Assert.That(result, Is.EqualTo("logged out successfully"));
+        Assert.That(account.RefreshToken, Is.Null);
+        _unitOfWork.Verify(u => u.BeginTransaction(), Times.Once);
+        _unitOfWork.Verify(u => u.Commit(), Times.Once);
+    }
+
+    [Test]
+    public async Task LogOutAsync_AccountNotFound_ThrowsAndRollsBack()
+    {
+        _accountRepo.Setup(r => r.GetByIdAsync(It.IsAny<long>())).ReturnsAsync((Account?)null);
+
+        var ex = Assert.ThrowsAsync<Exception>(() => _service.LogOutAsync(99));
+
+        Assert.That(ex!.Message, Does.Contain("account not found"));
+        _unitOfWork.Verify(u => u.Rollback(), Times.Once);
+    }
+
+    [Test]
+    public async Task LogOutAsync_RepositoryThrows_RollsBack()
+    {
+        _accountRepo.Setup(r => r.GetByIdAsync(It.IsAny<long>())).ReturnsAsync(BuildActiveAccount());
+        _accountRepo.Setup(r => r.UpdateAsync(It.IsAny<Account>())).ThrowsAsync(new Exception("db error"));
+
+        Assert.ThrowsAsync<Exception>(() => _service.LogOutAsync(1));
+
+        _unitOfWork.Verify(u => u.Rollback(), Times.Once);
+    }
+
+    // ── RefreshTokenAsync ────────────────────────────────────────────────────
+
+    [Test]
+    public async Task RefreshTokenAsync_ValidToken_ReturnsNewTokens()
+    {
+        SetupJwt();
+        var account = BuildActiveAccount();
+        account.RefreshToken        = "valid-refresh";
+        account.RefreshTokenExpiryTime = DateTimeOffset.UtcNow.AddHours(1);
+
+        _accountRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(account);
+        _accountRepo.Setup(r => r.UpdateAsync(It.IsAny<Account>())).ReturnsAsync(true);
+        _passwordHelper.Setup(p => p.GenerateRefreshToken()).Returns("new-refresh-token");
+
+        var result = await _service.RefreshTokenAsync(new RefreshTokenRequestDto
+        {
+            AccountId    = 1,
+            RefreshToken = "valid-refresh"
+        });
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.RefreshToken, Is.EqualTo("new-refresh-token"));
+    }
+
+    [Test]
+    public async Task RefreshTokenAsync_AccountNotFound_Throws()
+    {
+        _accountRepo.Setup(r => r.GetByIdAsync(It.IsAny<long>())).ReturnsAsync((Account?)null);
+
+        var ex = Assert.ThrowsAsync<Exception>(() =>
+            _service.RefreshTokenAsync(new RefreshTokenRequestDto { AccountId = 1, RefreshToken = "token" }));
+
+        Assert.That(ex!.Message, Does.Contain("invalid refresh token"));
+        // Nenhuma transação aberta: não há BeginTransaction nem Rollback
+        _unitOfWork.Verify(u => u.BeginTransaction(), Times.Never);
+    }
+
+    [Test]
+    public async Task RefreshTokenAsync_TokenMismatch_CommitsInvalidationAndThrows()
+    {
+        var account = BuildActiveAccount();
+        account.RefreshToken           = "different-token";
+        account.RefreshTokenExpiryTime = DateTimeOffset.UtcNow.AddHours(1);
+
+        _accountRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(account);
+        _accountRepo.Setup(r => r.UpdateAsync(It.IsAny<Account>())).ReturnsAsync(true);
+
+        var ex = Assert.ThrowsAsync<Exception>(() =>
+            _service.RefreshTokenAsync(new RefreshTokenRequestDto { AccountId = 1, RefreshToken = "wrong-token" }));
+
+        Assert.That(ex!.Message, Does.Contain("invalid refresh token"));
+        // Invalida o token no banco (commit), não rollback
+        _unitOfWork.Verify(u => u.BeginTransaction(), Times.Once);
+        _unitOfWork.Verify(u => u.Commit(), Times.Once);
+        _unitOfWork.Verify(u => u.Rollback(), Times.Never);
+    }
+
+    [Test]
+    public async Task RefreshTokenAsync_TokenExpired_CommitsInvalidationAndThrows()
+    {
+        var account = BuildActiveAccount();
+        account.RefreshToken           = "expired-token";
+        account.RefreshTokenExpiryTime = DateTimeOffset.UtcNow.AddHours(-1);
+
+        _accountRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(account);
+        _accountRepo.Setup(r => r.UpdateAsync(It.IsAny<Account>())).ReturnsAsync(true);
+
+        var ex = Assert.ThrowsAsync<Exception>(() =>
+            _service.RefreshTokenAsync(new RefreshTokenRequestDto { AccountId = 1, RefreshToken = "expired-token" }));
+
+        Assert.That(ex!.Message, Does.Contain("invalid refresh token"));
+        _unitOfWork.Verify(u => u.BeginTransaction(), Times.Once);
+        _unitOfWork.Verify(u => u.Commit(), Times.Once);
+        _unitOfWork.Verify(u => u.Rollback(), Times.Never);
     }
 }
-

@@ -10,6 +10,7 @@ public class Address : BaseEntity
     public string ZipCode { get; set; } = null!;
     public string Country { get; set; } = null!;
     public bool IsPrimary { get; set; }
+    public long ContactId { get; set; }
 }
 
 
