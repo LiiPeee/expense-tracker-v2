@@ -101,14 +101,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendDev", policy =>
     {
-        policy.WithOrigins(builder.Configuration["FrontEndUrl"])
+        policy.WithOrigins(builder.Configuration["FrontEndUrlDev"] ?? "http://localhost:8081")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 
     options.AddPolicy("FrontendProd", policy =>
     {
-        policy.WithOrigins(builder.Configuration["FrontEndUrl"])
+        policy.WithOrigins(builder.Configuration["FrontEndUrl"] ?? string.Empty)
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -131,15 +131,9 @@ if (enableSwagger)
 if (app.Environment.IsDevelopment())
 {
     app.UseCors("FrontendDev");
-    app.UseSwagger();
-    app.UseSwaggerUI();
 }
 else
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-    app.UseHttpsRedirection();
-    app.UseHsts();
     app.UseCors("FrontendProd");
 }
 

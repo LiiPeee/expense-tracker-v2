@@ -4,12 +4,11 @@ WORKDIR /src
 
 # Restore com cache de camadas (copia apenas os .csproj primeiro)
 COPY BudgetTracker.sln .
-COPY src/BudgetTracker.WebApi/BudgetTracker.WebApi.csproj             src/BudgetTracker.WebApi/
-COPY src/BudgetTracker.Application/BudgetTracker.Application.csproj   src/BudgetTracker.Application/
-COPY src/BudgetTracker.Core/BudgetTracker.Core.csproj                 src/BudgetTracker.Core/
+COPY src/BudgetTracker.WebApi/BudgetTracker.WebApi.csproj                 src/BudgetTracker.WebApi/
+COPY src/BudgetTracker.Application/BudgetTracker.Application.csproj       src/BudgetTracker.Application/
+COPY src/BudgetTracker.Core/BudgetTracker.Core.csproj                     src/BudgetTracker.Core/
 COPY src/BudgetTracker.Infrastructure/BudgetTracker.Infrastructure.csproj src/BudgetTracker.Infrastructure/
-COPY src/BudgetTracker.Worker/BudgetTracker.Worker.csproj             src/BudgetTracker.Worker/
-COPY Test/Test.csproj                                                  Test/
+COPY Test/Test.csproj                                                      Test/
 
 RUN dotnet restore
 
