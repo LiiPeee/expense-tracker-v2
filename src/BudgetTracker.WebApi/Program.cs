@@ -108,8 +108,10 @@ builder.Services.AddCors(options =>
 
     options.AddPolicy("FrontendProd", policy =>
     {
-        var allowedOrigins = (builder.Configuration["ALLOWED_ORIGINS"] ?? builder.Configuration["FrontEndUrl"] ?? string.Empty)
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        var backendUrl  = builder.Configuration["BackEndUrl"]  ?? string.Empty;
+        var frontendUrl = builder.Configuration["FrontEndUrl"] ?? string.Empty;
+
+        var allowedOrigins = new[] { backendUrl, frontendUrl }
             .Where(o => !string.IsNullOrWhiteSpace(o))
             .ToArray();
 
