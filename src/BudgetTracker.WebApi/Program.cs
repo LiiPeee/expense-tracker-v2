@@ -1,10 +1,12 @@
 using System.Text;
+using System.Text.Json;
 using AspNetCoreRateLimit;
 using BudgetTracker.Application;
 using BudgetTracker.Core.Domain.Options;
 using BudgetTracker.Infrastructure;
 using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
@@ -38,7 +40,28 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(e => e.Value?.Errors.Count > 0)
+                .SelectMany(e => e.Value!.Errors.Select(x => x.ErrorMessage))
+                .ToArray();
+
+            var response = new
+            {
+                error = new
+                {
+                    message = errors.FirstOrDefault() ?? "Validation failed",
+                    details = errors
+                }
+            };
+
+            return new BadRequestObjectResult(response);
+        };
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {

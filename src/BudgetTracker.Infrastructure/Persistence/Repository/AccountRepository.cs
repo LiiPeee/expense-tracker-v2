@@ -35,5 +35,13 @@ public class AccountRepository : RepositoryBase<Account>, IAccountRepository
 
         return account;
     }
+
+    public async Task UpdateBalanceAtomicAsync(long accountId, decimal delta)
+    {
+        if (_db._connection.State != ConnectionState.Open) throw new InvalidOperationException("Error of connection");
+
+        const string query = @"UPDATE ""Account"" SET ""Balance"" = ""Balance"" + @Delta WHERE ""Id"" = @AccountId";
+        await _db._connection.ExecuteAsync(query, new { Delta = delta, AccountId = accountId }, _db._transaction);
+    }
 }
 

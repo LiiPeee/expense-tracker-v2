@@ -6,6 +6,7 @@ public interface IAccountRepository : IRepositoryBase<Account>
 {
     Task<Account?> GetByEmailAsync(string email);
     Task<Account?> GetByToken(string token);
+    Task UpdateBalanceAtomicAsync(long accountId, decimal delta);
 }
 
 

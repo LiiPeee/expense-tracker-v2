@@ -98,12 +98,11 @@ public class TransactionsAppService : ITransactionsAppService
 
             if (transaction is not null)
             {
-                var account = await _accountRepository.GetByIdAsync(transaction.AccountId)
-                    ?? throw new KeyNotFoundException("we cannot find account");
-
                 if (paidTransactionRequest.Paid == true && transaction.Paid != true)
                 {
-                    var newBalance = SumOrSubtractBalance(account.Balance, transaction.Amount, transaction.TypeTransactionId);
+                    var delta = transaction.TypeTransactionId == (long)TypeTransactions.EXPENSE
+                        ? -transaction.Amount
+                        : transaction.Amount;
 
                     transaction.Paid = true;
 
@@ -113,9 +112,8 @@ public class TransactionsAppService : ITransactionsAppService
                     {
                         throw new ArgumentException("something wrong happen");
                     }
-                    account.Balance = newBalance;
 
-                    await _accountRepository.UpdateAsync(account);
+                    await _accountRepository.UpdateBalanceAtomicAsync(transaction.AccountId, delta);
                     _unitOfWork.Commit();
                 }
             }
@@ -481,13 +479,6 @@ public class TransactionsAppService : ITransactionsAppService
         }
     }
 
-    private decimal SumOrSubtractBalance(decimal balance, decimal transactionAmount, long typeTransaction)
-    {
-        var sum = balance + transactionAmount;
-        var subtraction = balance - transactionAmount;
-
-        return (typeTransaction == 1) ? subtraction : sum;
-    }
 }
 
 

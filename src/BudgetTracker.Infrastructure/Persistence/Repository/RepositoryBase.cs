@@ -43,7 +43,7 @@ public class RepositoryBase<T> : IRepositoryBase<T> where T : class
 
     public async Task<IEnumerable<T>> GetAllAsync()
     {
-        var query = $"SELECT * FROM {_tableName}";
+        var query = $"SELECT * FROM {_tableName} LIMIT 1000";
 
         if (_db._connection.State != ConnectionState.Open)
             throw new InvalidOperationException("Database connection is not open.");

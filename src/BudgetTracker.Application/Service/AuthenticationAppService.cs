@@ -58,7 +58,7 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
                 EmailVerified = false,
                 VerifiedAt = null,
                 EmailVerificationToken = _passwordHelper.GenerateVerificationCode(),
-                EmailVerificationTokenExpiry = DateTime.Now.AddHours(4)
+                EmailVerificationTokenExpiry = DateTime.UtcNow.AddHours(4)
             };
 
             _unitOfWork.BeginTransaction();
@@ -85,7 +85,7 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
 
             if (account is null || account.VerifyAttempts > 5)
             {
-                throw new ArgumentException("Excceds attempts");
+                throw new ArgumentException("Exceeds attempts");
             }
 
             if (account.EmailVerificationToken != request.Token)
@@ -102,7 +102,7 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
 
             account.EmailVerified = true;
             account.EmailVerificationToken = null;
-            account.VerifiedAt = DateTime.Now;
+            account.VerifiedAt = DateTime.UtcNow;
             account.IsActive = true;
 
             _unitOfWork.BeginTransaction();
@@ -279,6 +279,7 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
             catch
             {
                 _unitOfWork.Rollback();
+                throw;
             }
             throw new Exception("invalid refresh token");
         }

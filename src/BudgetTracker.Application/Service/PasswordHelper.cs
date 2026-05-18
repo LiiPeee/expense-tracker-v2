@@ -19,11 +19,12 @@ namespace BudgetTracker.Application.Service
 
             using Aes aes = Aes.Create();
             aes.Key = Convert.FromBase64String(_base64EncryptionKey);
-            aes.IV = Convert.FromBase64String(_base64EncryptionIV);
+            aes.GenerateIV();
 
             using MemoryStream ms = new MemoryStream();
+            ms.Write(aes.IV, 0, aes.IV.Length);
 
-            using(CryptoStream cs = new CryptoStream(ms,aes.CreateEncryptor(), CryptoStreamMode.Write))
+            using(CryptoStream cs = new CryptoStream(ms, aes.CreateEncryptor(), CryptoStreamMode.Write))
             {
                 cs.Write(plainBytes, 0, plainBytes.Length);
                 cs.FlushFinalBlock();
@@ -53,17 +54,18 @@ namespace BudgetTracker.Application.Service
 
         public string Decrypt(string encryptedText)
         {
-            byte[] encryptdBytes = Convert.FromBase64String(encryptedText);
+            byte[] encryptedBytes = Convert.FromBase64String(encryptedText);
 
             using Aes aes = Aes.Create();
             aes.Key = Convert.FromBase64String(_base64EncryptionKey);
-            aes.IV = Convert.FromBase64String(_base64EncryptionIV);
+            aes.IV = encryptedBytes[..16];
+            byte[] cipherText = encryptedBytes[16..];
 
-            using MemoryStream ms  = new MemoryStream();
+            using MemoryStream ms = new MemoryStream();
 
             using(CryptoStream cs = new CryptoStream(ms, aes.CreateDecryptor(), CryptoStreamMode.Write))
             {
-                cs.Write(encryptdBytes, 0, encryptdBytes.Length);
+                cs.Write(cipherText, 0, cipherText.Length);
                 cs.FlushFinalBlock();
             }
 
@@ -93,15 +95,13 @@ namespace BudgetTracker.Application.Service
         public string GenerateRefreshToken()
         {
             var randomNumber = new byte[64];
-            using var rng = RNGCryptoServiceProvider.Create();
-            rng.GetBytes(randomNumber);
+            RandomNumberGenerator.Fill(randomNumber);
             return Convert.ToBase64String(randomNumber);
         }
 
         public string GenerateVerificationCode()
         {
-            Random random = new Random();
-            return random.Next(100000, 999999).ToString();
+            return RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
         }
     }
 }

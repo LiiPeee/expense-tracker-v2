@@ -27,15 +27,14 @@ public class CategoryRepository : RepositoryBase<Category>, ICategoryRepository
 
     public async Task<List<Category>> GetAllAsync()
     {
-
-        var query = @"SELECT * FROM Category";
+        var query = @"SELECT * FROM Category LIMIT 1000";
 
         if (_db._connection.State != ConnectionState.Open)
         {
             throw new Exception("connection lost");
         }
 
-         var categories = await _db._connection.QueryAsync<Category>(query, new { }, transaction: _db._transaction);
+        var categories = await _db._connection.QueryAsync<Category>(query, transaction: _db._transaction);
         return categories.ToList();
     }
 }

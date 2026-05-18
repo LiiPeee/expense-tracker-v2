@@ -24,11 +24,8 @@ namespace BudgetTracker.Infrastructure.Persistence.Repository
 
         public void Dispose()
         {
-            _transaction?.Dispose();
-            if (_connection.State == ConnectionState.Open)
-            {
-                _connection.Close();
-            }
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         protected virtual void Dispose(bool disposing)

@@ -1,11 +1,40 @@
 using BudgetTracker.Core.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
-using Resend;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 
 namespace BudgetTracker.Infrastructure.Services;
 
-public class EmailService(IResend resend, IConfiguration configuration) : IEmailService
+public class EmailService(IHttpClientFactory httpClientFactory, IConfiguration configuration) : IEmailService
 {
+    private const string BrevoApiUrl = "https://api.brevo.com/v3/smtp/email";
+
+    private async Task SendAsync(string toEmail, string subject, string htmlBody)
+    {
+        var payload = new
+        {
+            sender = new
+            {
+                name = configuration["EmailSender:SenderName"] ?? "Expense Tracker",
+                email = configuration["EmailSender:From"]
+            },
+            to = new[] { new { email = toEmail } },
+            subject,
+            htmlContent = htmlBody
+        };
+
+        var client = httpClientFactory.CreateClient("Brevo");
+        var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+        var response = await client.PostAsync(BrevoApiUrl, content);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new InvalidOperationException($"Brevo error {(int)response.StatusCode}: {error}");
+        }
+    }
+
     public async Task SendCodeToEmailAsync(string email, string id, string token)
     {
         var url = $"{configuration["FrontEndUrl"]}/verify-email/{id}";
@@ -34,9 +63,6 @@ public class EmailService(IResend resend, IConfiguration configuration) : IEmail
                                 </a>
                             </div>
                             <p style='color:#9CA3AF; font-size:13px;'>
-                                Seu token: <strong>{token}</strong>
-                            </p>
-                            <p style='color:#9CA3AF; font-size:13px;'>
                                 Se não criou uma conta, ignore este email.
                             </p>
                         </td>
@@ -45,15 +71,7 @@ public class EmailService(IResend resend, IConfiguration configuration) : IEmail
             </body>
             </html>";
 
-        var message = new EmailMessage
-        {
-            From = configuration["EmailSender:From"]!,
-            Subject = "Account Confirmation",
-            HtmlBody = htmlBody,
-        };
-        message.To.Add(email);
-
-        await resend.EmailSendAsync(message);
+        await SendAsync(email, "Account Confirmation", htmlBody);
     }
 
     public async Task SendVerificationEmailAsync(string email, string token)
@@ -80,29 +98,16 @@ public class EmailService(IResend resend, IConfiguration configuration) : IEmail
                                 <a href='{url}'
                                    style='background:#4F46E5; color:#fff; padding:14px 32px;
                                           border-radius:6px; font-size:16px; text-decoration:none;'>
-                                    Verificar minha conta
+                                    Redefinir minha senha
                                 </a>
                             </div>
-                            <p style='color:#9CA3AF; font-size:13px;'>
-                                Seu token: <strong>{token}</strong>
-                            </p>
                         </td>
                     </tr>
                 </table>
             </body>
             </html>";
 
-        var message = new EmailMessage
-        {
-            From = configuration["EmailSender:From"]!,
-            Subject = "Reset password",
-            HtmlBody = htmlBody,
-        };
-        message.To.Add(email);
-
-        await resend.EmailSendAsync(message);
+        await SendAsync(email, "Reset password", htmlBody);
     }
 }
-
-
 

@@ -6,7 +6,6 @@ using BudgetTracker.Infrastructure.Persistence.Repository;
 using BudgetTracker.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Resend;
 
 namespace BudgetTracker.Infrastructure;
 
@@ -14,9 +13,9 @@ public static class InfrastructureDependencyWebApi
 {
     public static IServiceCollection AddInfrastructureWebApi(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddResend(options =>
+        services.AddHttpClient("Brevo", client =>
         {
-            options.ApiToken = configuration["Resend:ApiToken"]!;
+            client.DefaultRequestHeaders.Add("api-key", configuration["Brevo:ApiKey"]);
         });
 
         return services
