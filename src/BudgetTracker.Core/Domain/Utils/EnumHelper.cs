@@ -17,9 +17,35 @@ namespace BudgetTracker.Application
             }
             throw new Exception($"{enumName} is not supported.");
         }
-        public static int GetId<TEnum>(TEnum enumValue) where TEnum : struct, Enum
+        public static int GetRecurrence(string enumValue)
         {
-            return Convert.ToInt32(enumValue);
+            return enumValue switch
+            {
+                "NONE" => 1,
+                "DAILY" => 2,
+                "BIWEEKLY" => 3,
+                "MONTHLY" => 4,
+                "OCCASIONALLY" => 5
+            };
+        }
+
+        public static int GetTypeContact(string enumValue)
+        {
+            return enumValue switch
+            {
+                "PERSONAL" => 1,
+                "BUSINESS" => 2,
+                _ => throw new NotImplementedException(),
+            };
+        }
+        public static int GetTypeTransaction(string value)
+        {
+            return value switch
+            {
+                "EXPENSE" => 1,
+                "INCOME" => 2,
+                _ => throw new NotImplementedException(),
+            };
         }
         public static string Category(string category)
         {

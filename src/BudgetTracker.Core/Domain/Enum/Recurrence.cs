@@ -5,7 +5,8 @@ namespace BudgetTracker.Core.Domain.Enum
         NONE = 1,
         DAILY = 2,
         BIWEEKLY = 3,
-        MONTHLY = 4
+        MONTHLY = 4,
+        OCCASIONALLY = 5
     }
 }
 

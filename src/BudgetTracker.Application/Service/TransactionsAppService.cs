@@ -50,22 +50,21 @@ public class TransactionsAppService : ITransactionsAppService
             var subCategory = await _subCategoryRepository.GetByNameAsync(transactionRequest.SubCategoryName)
                 ?? await _subCategoryRepository.AddAsync(new SubCategory { Name = transactionRequest.SubCategoryName, IsActive = true, CategoryId = category.Id, AccountId = accountId });
 
-            var recurrenceId = EnumHelper.GetId(transactionRequest.Recurrence);
-            var typeTransactionId = EnumHelper.GetId(transactionRequest.TypeTransaction);
+            var recurrenceId = EnumHelper.GetRecurrence(transactionRequest.Recurrence.ToString());
+            var typeTransactionId = EnumHelper.GetTypeTransaction(transactionRequest.TypeTransaction.ToString());
 
             if (transactionRequest.NumberOfInstallment > 0)
             {
-                return await CreateInstallemntsAsync(transactionRequest, category.Id, contact.Id, recurrenceId, typeTransactionId, accountId, subCategory.Id);
+                return await CreateInstallemntsAsync(transactionRequest, 2, 3, recurrenceId, typeTransactionId, accountId, 4);
             }
-
             Transactions transaction = new()
             {
                 AccountId = accountId,
                 Amount = transactionRequest.Amount,
                 Name = transactionRequest.TransactionName,
-                CategoryId = category.Id,
-                ContactId = contact.Id,
-                SubCategoryId = subCategory.Id,
+                CategoryId = 3,
+                ContactId = 8,
+                SubCategoryId = 8,
                 Description = transactionRequest.Description,
                 NumberOfInstallment = transactionRequest.NumberOfInstallment,
                 Paid = false,
@@ -73,6 +72,10 @@ public class TransactionsAppService : ITransactionsAppService
                 TypeTransactionId = typeTransactionId,
             };
 
+            if (recurrenceId == 5)
+            {
+                transaction.CreatedAt = new DateTime().AddMonths(1);
+            }
             var savedTransaction = await _transactionRepository.AddAsync(transaction);
             _unitOfWork.Commit();
 

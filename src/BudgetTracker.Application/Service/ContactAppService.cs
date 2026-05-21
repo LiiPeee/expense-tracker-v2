@@ -24,7 +24,7 @@ public class ContactAppService : IContactAppService
     {
         try
         {
-            var typeContactId = EnumHelper.GetId(request.TypeContact);
+            var typeContactId = EnumHelper.GetTypeContact(request.TypeContact.ToString());
 
             Contact contact = new Contact()
             {
@@ -100,7 +100,7 @@ public class ContactAppService : IContactAppService
                 Email = request.Email,
                 Name = request.Name,
                 Phone = request.Phone,
-                TypeContactId = EnumHelper.GetId(request.TypeContact),
+                TypeContactId = EnumHelper.GetTypeContact(request.TypeContact.ToString()),
                 UpdatedAt = DateTime.UtcNow,
             };
 
