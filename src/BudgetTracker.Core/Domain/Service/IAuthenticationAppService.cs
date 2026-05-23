@@ -11,9 +11,10 @@ public interface IAuthenticationAppService
     Task<TokenResponseDto?> SignInAsync(LoginRequestDto request);
     Task<TokenResponseDto?> RefreshTokenAsync(RefreshTokenRequestDto request);
     Task<string> LogOutAsync(long accountId);
-    Task<string?> VerifyTokenAsync(VerifyTokenRequestDto request);
+    Task<string?> VerifyTokenSignUpAsync(VerifyTokenRequestDto request);
     Task<string?> VerifyEmailAsync(string email);
     Task<string?> ResetPasswordAsync(ResetPasswordRequestDto request);
+    Task<string?> ValidateResetCodeAsync(string email, string token);
 }
 
 

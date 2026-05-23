@@ -77,7 +77,7 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
             throw;
         }
     }
-    public async Task<string?> VerifyTokenAsync(VerifyTokenRequestDto request)
+    public async Task<string?> VerifyTokenSignUpAsync(VerifyTokenRequestDto request)
     {
         try
         {
@@ -119,35 +119,94 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
         }
     }
 
+    public async Task<string?> ValidateResetCodeAsync(string email, string token)
+    {
+        try {
+
+            var account = await _accountRepository.GetByEmailAsync(email);
+
+            if (account is null) throw new ArgumentException("Account not found");
+
+            var resetPassword = await _resetPasswordRepository.GetByAccountIdAsync(account.Id);
+
+            if(resetPassword is null || resetPassword.ExpireAt < DateTime.UtcNow || resetPassword.HashedToken != token)
+            {
+                throw new ArgumentException("Invalid Token");
+            }
+
+            if(resetPassword.HashedToken != token)
+            {
+                throw new ArgumentException("Invalid Token");
+            }
+            var updatedResetPassword = new ResetPassword()
+            {
+                Id = resetPassword.Id,
+                AccountId = resetPassword.AccountId,
+                HashedToken = null,
+                ExpireAt = DateTime.UtcNow,
+                CreatedAt = resetPassword.CreatedAt
+            };
+
+            _unitOfWork.BeginTransaction();
+
+            await _resetPasswordRepository.UpdateAsync(updatedResetPassword);
+
+            _unitOfWork.Commit();
+
+            return "Token Validated";
+        }
+        catch (Exception ex)
+        {
+            _unitOfWork.Rollback();
+            throw;
+        }
+    }
     public async Task<string?> VerifyEmailAsync(string email)
     {
         try
         {
-
             var account = await _accountRepository.GetByEmailAsync(email);
             if (account is null) throw new ArgumentException();
 
-            string passwordResetToken = _passwordHelper.GenerateRefreshToken();
-
-            var combinedToken = $"{passwordResetToken}|{account.Id}";
-            var encryptedToken = _passwordHelper.Encrypt(combinedToken);
+            string token = _passwordHelper.GenerateVerificationCode();
 
             var resetPassword = new ResetPassword()
             {
                 AccountId = account.Id,
-                HashedToken = passwordResetToken,
+                HashedToken = token,
                 ExpireAt = DateTime.UtcNow.AddHours(1),
                 CreatedAt = DateTime.UtcNow,
             };
-            _unitOfWork.BeginTransaction();
 
-            await _resetPasswordRepository.AddAsync(resetPassword);
+            var reset = await _resetPasswordRepository.GetByAccountIdAsync(account.Id);
 
-            await _emailService.SendVerificationEmailAsync(email, encryptedToken);
+            if (reset is not null)
+            {
+                reset.ExpireAt = resetPassword.ExpireAt;
+                reset.HashedToken = resetPassword.HashedToken;
 
-            _unitOfWork.Commit();
+                _unitOfWork.BeginTransaction();
 
-            return "Reset email sended";
+                await _resetPasswordRepository.UpdateAsync(reset);
+
+                await _emailService.SendVerificationEmailAsync(email, token);
+
+                _unitOfWork.Commit();
+
+                return "Reset email sended";
+            }
+            else
+            {
+                _unitOfWork.BeginTransaction();
+
+                await _resetPasswordRepository.AddAsync(resetPassword);
+
+                await _emailService.SendVerificationEmailAsync(email, token);
+
+                _unitOfWork.Commit();
+
+                return "Reset email sended";
+            }
         }
         catch
         {
@@ -160,31 +219,18 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
     {
         try
         {
-
-            var decryptedToken = _passwordHelper.Decrypt(request.Token);
-
-            var tokenParts = decryptedToken.Split('|');
-
-            if (tokenParts.Length != 2)
-            {
-                throw new KeyNotFoundException("Invalid Token");
-            }
-
-            var passwordResetToken = tokenParts[0];
-            var accountId = long.Parse(tokenParts[1]);
-
-            var account = await _accountRepository.GetByIdAsync(accountId);
+            var account = await _accountRepository.GetByEmailAsync(request.email);
 
             if (account is null) throw new KeyNotFoundException("Account not found");
 
-            var resetPassword = await _resetPasswordRepository.GetByAccountIdAsync(accountId);
+            var resetPassword = await _resetPasswordRepository.GetByAccountIdAsync(account.Id);
 
-            if (resetPassword is null || resetPassword.ExpireAt < DateTime.UtcNow)
+            if (resetPassword is null)
             {
                 throw new ArgumentException("Invalid Token");
             }
 
-            var hashPassword = new PasswordHasher().HashPassword(request.NewPassword);
+            var hashPassword = new PasswordHasher().HashPassword(request.newPassword);
 
             account.Password = hashPassword;
 

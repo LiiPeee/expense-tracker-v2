@@ -194,7 +194,7 @@ public class AuthServiceTest
         _accountRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(account);
         _accountRepo.Setup(r => r.UpdateAsync(It.IsAny<Account>())).ReturnsAsync(true);
 
-        var result = await _service.VerifyTokenAsync(new VerifyTokenRequestDto { Id = "encrypted-id", Token = "valid-token" });
+        var result = await _service.VerifyTokenSignUpAsync(new VerifyTokenRequestDto { Id = "encrypted-id", Token = "valid-token" });
 
         Assert.That(result, Is.EqualTo("Your email has been verified successfully"));
         Assert.That(account.IsActive, Is.True);
@@ -210,7 +210,7 @@ public class AuthServiceTest
         _accountRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync((Account?)null);
 
         Assert.ThrowsAsync<ArgumentException>(() =>
-            _service.VerifyTokenAsync(new VerifyTokenRequestDto { Id = "id", Token = "token" }));
+            _service.VerifyTokenSignUpAsync(new VerifyTokenRequestDto { Id = "id", Token = "token" }));
 
         _unitOfWork.Verify(u => u.Rollback(), Times.Once);
     }
@@ -223,7 +223,7 @@ public class AuthServiceTest
         _accountRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(account);
 
         Assert.ThrowsAsync<ArgumentException>(() =>
-            _service.VerifyTokenAsync(new VerifyTokenRequestDto { Id = "id", Token = "t" }));
+            _service.VerifyTokenSignUpAsync(new VerifyTokenRequestDto { Id = "id", Token = "t" }));
 
         _unitOfWork.Verify(u => u.Rollback(), Times.Once);
     }
@@ -236,7 +236,7 @@ public class AuthServiceTest
         _accountRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(account);
 
         var ex = Assert.ThrowsAsync<ArgumentException>(() =>
-            _service.VerifyTokenAsync(new VerifyTokenRequestDto { Id = "id", Token = "wrong-token" }));
+            _service.VerifyTokenSignUpAsync(new VerifyTokenRequestDto { Id = "id", Token = "wrong-token" }));
 
         Assert.That(ex!.Message, Does.Contain("Invalid Token"));
         _unitOfWork.Verify(u => u.Rollback(), Times.Once);
@@ -257,7 +257,7 @@ public class AuthServiceTest
         _accountRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(account);
 
         var ex = Assert.ThrowsAsync<ArgumentException>(() =>
-            _service.VerifyTokenAsync(new VerifyTokenRequestDto { Id = "id", Token = "token" }));
+            _service.VerifyTokenSignUpAsync(new VerifyTokenRequestDto { Id = "id", Token = "token" }));
 
         Assert.That(ex!.Message, Does.Contain("Expiry"));
         _unitOfWork.Verify(u => u.Rollback(), Times.Once);

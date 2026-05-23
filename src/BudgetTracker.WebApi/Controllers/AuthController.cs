@@ -41,7 +41,7 @@ namespace BudgetTracker.WebApi.Controller
                 Token = request.Token
             };
 
-            return Ok(await _accountAppService.VerifyTokenAsync(requestDto));
+            return Ok(await _accountAppService.VerifyTokenSignUpAsync(requestDto));
         }
 
         [HttpPost("[action]")]
@@ -49,8 +49,8 @@ namespace BudgetTracker.WebApi.Controller
         {
             var resetPassword = new ResetPasswordRequestDto()
             {
-                Token = request.Token,
-                NewPassword = request.NewPassword
+                email = request.email,
+                newPassword = request.newPassword
             };
 
             return Ok(await _accountAppService.ResetPasswordAsync(resetPassword));
@@ -61,7 +61,11 @@ namespace BudgetTracker.WebApi.Controller
         {
             return Ok(await _accountAppService.VerifyEmailAsync(email));
         }
-
+        [HttpPost("[action]")]
+        public async Task<ActionResult<string>> ValidateResetCode([FromQuery] string email, [FromBody] string token)
+        {
+            return Ok(await _accountAppService.ValidateResetCodeAsync(email, token));
+        }
         [HttpPost("[action]")]
         [Authorize(Roles = "User")]
         public async Task<ActionResult<TokenResponseDto?>> RefreshTokenAsync(RefreshTokenAccountRequest request)

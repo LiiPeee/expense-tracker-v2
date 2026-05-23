@@ -76,36 +76,42 @@ public class EmailService(IHttpClientFactory httpClientFactory, IConfiguration c
 
     public async Task SendVerificationEmailAsync(string email, string token)
     {
-        var url = $"{configuration["FrontEndUrl"]}/reset-password?email={email}&token={token}";
+        var url = $"{configuration["FrontEndUrl"]}/reset-code?email={Uri.EscapeDataString(email)}";
         var htmlBody = $@"
-            <!DOCTYPE html>
-            <html lang='en'>
-            <head><meta charset='UTF-8' /></head>
-            <body style='font-family: Arial, sans-serif; background-color:#f4f4f4; padding: 40px;'>
-                <table width='600' style='background:#fff; border-radius:8px; padding:32px; margin:auto;'>
-                    <tr>
-                        <td style='background:#4F46E5; padding:24px; text-align:center;'>
-                            <h1 style='color:#fff; margin:0;'>Expense Tracker</h1>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style='padding:32px;'>
-                            <h2 style='color:#111827;'>Redefinir senha</h2>
-                            <p style='color:#6B7280; font-size:16px; line-height:1.6;'>
-                                Clique no botão abaixo para redefinir sua senha.
-                            </p>
-                            <div style='text-align:center; margin:32px 0;'>
-                                <a href='{url}'
-                                   style='background:#4F46E5; color:#fff; padding:14px 32px;
-                                          border-radius:6px; font-size:16px; text-decoration:none;'>
-                                    Redefinir minha senha
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                </table>
-            </body>
-            </html>";
+        <!DOCTYPE html>
+        <html lang='en'>
+        <head><meta charset='UTF-8' /></head>
+        <body style='font-family: Arial, sans-serif; background-color:#f4f4f4; padding: 40px;'>
+            <table width='600' style='background:#fff; border-radius:8px; padding:32px; margin:auto;'>
+                <tr>
+                    <td style='background:#4F46E5; padding:24px; text-align:center;'>
+                        <h1 style='color:#fff; margin:0;'>Expense Tracker</h1>
+                    </td>
+                </tr>
+                <tr>
+                    <td style='padding:32px;'>
+                        <h2 style='color:#111827;'>Redefinir senha</h2>
+                        <p style='color:#6B7280; font-size:16px; line-height:1.6;'>
+                            Clique no botão abaixo para redefinir sua senha.
+                        </p>
+
+                        <p style='color:#111827; font-size:14px; margin:24px 0 8px 0;'>Seu código de verificação:</p>
+                        <div style='font-size:28px; font-weight:bold; letter-spacing:4px; color:#4F46E5; margin-bottom:24px;'>
+                            {token}
+                        </div>
+
+                        <div style='text-align:center; margin:32px 0;'>
+                            <a href='{url}'
+                               style='background:#4F46E5; color:#fff; padding:14px 32px;
+                                      border-radius:6px; font-size:16px; text-decoration:none;'>
+                                Redefinir minha senha
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </body>
+        </html>";
 
         await SendAsync(email, "Reset password", htmlBody);
     }
