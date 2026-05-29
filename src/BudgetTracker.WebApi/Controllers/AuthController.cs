@@ -67,7 +67,7 @@ namespace BudgetTracker.WebApi.Controller
             return Ok(await _accountAppService.ValidateResetCodeAsync(email, token));
         }
         [HttpPost("[action]")]
-        [Authorize(Roles = "User")]
+        [Authorize(Roles = "User,Admin")]
         public async Task<ActionResult<TokenResponseDto?>> RefreshTokenAsync(RefreshTokenAccountRequest request)
         {
             var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -84,7 +84,7 @@ namespace BudgetTracker.WebApi.Controller
         }
 
         [HttpPost("[action]")]
-        [Authorize(Roles = "User")]
+        [Authorize(Roles = "User,Admin")]
         public async Task<ActionResult<TokenResponseDto?>> LogOutAsync()
         {
             var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
