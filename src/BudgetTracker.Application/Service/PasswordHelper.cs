@@ -13,7 +13,7 @@ namespace BudgetTracker.Application.Service
         private readonly string _base64EncryptionIV = options.Value.Base64EncryptionIV;
 
 
-        public string Encrypt(string plainText) 
+        public string Encrypt(string plainText)
         {
             byte[] plainBytes = Encoding.UTF8.GetBytes(plainText);
 
@@ -24,7 +24,7 @@ namespace BudgetTracker.Application.Service
             using MemoryStream ms = new MemoryStream();
             ms.Write(aes.IV, 0, aes.IV.Length);
 
-            using(CryptoStream cs = new CryptoStream(ms, aes.CreateEncryptor(), CryptoStreamMode.Write))
+            using (CryptoStream cs = new CryptoStream(ms, aes.CreateEncryptor(), CryptoStreamMode.Write))
             {
                 cs.Write(plainBytes, 0, plainBytes.Length);
                 cs.FlushFinalBlock();
@@ -63,7 +63,7 @@ namespace BudgetTracker.Application.Service
 
             using MemoryStream ms = new MemoryStream();
 
-            using(CryptoStream cs = new CryptoStream(ms, aes.CreateDecryptor(), CryptoStreamMode.Write))
+            using (CryptoStream cs = new CryptoStream(ms, aes.CreateDecryptor(), CryptoStreamMode.Write))
             {
                 cs.Write(cipherText, 0, cipherText.Length);
                 cs.FlushFinalBlock();

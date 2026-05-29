@@ -10,7 +10,7 @@ namespace BudgetTracker.WebApi.Controller
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "User")]
+    [Authorize(Roles = "User,Admin")]
     public class ContactController : ControllerBase
     {
         private readonly IContactAppService _contactAppService;
