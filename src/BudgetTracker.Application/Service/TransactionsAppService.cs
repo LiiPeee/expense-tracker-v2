@@ -40,7 +40,7 @@ public class TransactionsAppService : ITransactionsAppService
             _unitOfWork.BeginTransaction();
 
             var contact = await _contactRepository.GetByNameAsync(accountId, transactionRequest.ContactName);
-            var category = await _categoryRepository.GetByNameAsync(EnumHelper.Category(transactionRequest.CategoryName.ToString()));
+            var category = await _categoryRepository.GetByNameAsync(EnumHelper.Category(transactionRequest.CategoryName));
 
             if (category is null || contact is null)
             {
@@ -48,23 +48,24 @@ public class TransactionsAppService : ITransactionsAppService
             }
 
             var subCategory = await _subCategoryRepository.GetByNameAsync(transactionRequest.SubCategoryName)
-                ?? await _subCategoryRepository.AddAsync(new SubCategory { Name = transactionRequest.SubCategoryName, IsActive = true, CategoryId = category.Id, AccountId = accountId });
+                ?? await _subCategoryRepository.AddAsync(new SubCategory 
+                { Name = transactionRequest.SubCategoryName, IsActive = true, CategoryId = category.Id, AccountId = accountId });
 
-            var recurrenceId = EnumHelper.GetRecurrence(transactionRequest.Recurrence.ToString());
-            var typeTransactionId = EnumHelper.GetTypeTransaction(transactionRequest.TypeTransaction.ToString());
+            var recurrenceId = (long)transactionRequest.Recurrence;
+            var typeTransactionId = (long)transactionRequest.TypeTransaction;
 
             if (transactionRequest.NumberOfInstallment > 0)
             {
-                return await CreateInstallemntsAsync(transactionRequest, 2, 3, recurrenceId, typeTransactionId, accountId, 4);
+                return await CreateInstallemntsAsync(transactionRequest, category.Id, contact.Id, recurrenceId, typeTransactionId, accountId, subCategory.Id);
             }
             Transactions transaction = new()
             {
                 AccountId = accountId,
                 Amount = transactionRequest.Amount,
                 Name = transactionRequest.TransactionName,
-                CategoryId = 3,
-                ContactId = 8,
-                SubCategoryId = 8,
+                CategoryId = category.Id,
+                ContactId = contact.Id,
+                SubCategoryId = subCategory.Id,
                 Description = transactionRequest.Description,
                 NumberOfInstallment = transactionRequest.NumberOfInstallment,
                 Paid = false,
