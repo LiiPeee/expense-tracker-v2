@@ -121,7 +121,8 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
 
     public async Task<string?> ValidateResetCodeAsync(string email, string token)
     {
-        try {
+        try
+        {
 
             var account = await _accountRepository.GetByEmailAsync(email);
 
@@ -129,12 +130,12 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
 
             var resetPassword = await _resetPasswordRepository.GetByAccountIdAsync(account.Id);
 
-            if(resetPassword is null || resetPassword.ExpireAt < DateTime.UtcNow || resetPassword.HashedToken != token)
+            if (resetPassword is null || resetPassword.ExpireAt < DateTime.UtcNow || resetPassword.HashedToken != token)
             {
                 throw new ArgumentException("Invalid Token");
             }
 
-            if(resetPassword.HashedToken != token)
+            if (resetPassword.HashedToken != token)
             {
                 throw new ArgumentException("Invalid Token");
             }
@@ -224,11 +225,6 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
             if (account is null) throw new KeyNotFoundException("Account not found");
 
             var resetPassword = await _resetPasswordRepository.GetByAccountIdAsync(account.Id);
-
-            if (resetPassword is null)
-            {
-                throw new ArgumentException("Invalid Token");
-            }
 
             var hashPassword = new PasswordHasher().HashPassword(request.newPassword);
 

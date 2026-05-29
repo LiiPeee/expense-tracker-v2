@@ -131,7 +131,7 @@ builder.Services.AddCors(options =>
 
     options.AddPolicy("FrontendProd", policy =>
     {
-        var backendUrl  = builder.Configuration["BackEndUrl"]  ?? string.Empty;
+        var backendUrl = builder.Configuration["BackEndUrl"] ?? string.Empty;
         var frontendUrl = builder.Configuration["FrontEndUrl"] ?? string.Empty;
 
         var allowedOrigins = new[] { backendUrl, frontendUrl }
