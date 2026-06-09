@@ -25,6 +25,7 @@ public static class InfrastructureDependencyWebApi
         .AddScoped<ICategoryRepository, CategoryRepository>()
         .AddScoped<IAddressRepository, AddressRepository>()
         .AddScoped<IContactRepository, ContactRepository>()
+        .AddScoped<IBudgetLimitRepository, BudgetLimitRepository>()
         .AddScoped<ISubCategoryRepository, SubCategoryRepository>()
         .AddScoped<IResetPasswordRepository, ResetPasswordRepository>()
         .AddScoped<IUnitOfWork, UnitOfWork>()

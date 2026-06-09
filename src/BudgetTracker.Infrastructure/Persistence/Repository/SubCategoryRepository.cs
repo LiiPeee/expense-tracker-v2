@@ -20,11 +20,11 @@ namespace BudgetTracker.Infrastructure.Persistence.Repository
 
         public async Task<SubCategory?> GetByNameAsync(long accountId, string name)
         {
-            var query = @"SELECT * FROM SubCategory WHERE Name = @Name AND AccountId = @AccountId ORDER BY Id LIMIT 1";
+            var query = $"SELECT * FROM SubCategory WHERE Name = @Name";
 
             if (_db._connection.State == ConnectionState.Open)
             {
-                return await _db._connection.QueryFirstOrDefaultAsync<SubCategory>(query, new { Name = name, AccountId = accountId }, transaction: _db._transaction);
+                return await _db._connection.QuerySingleOrDefaultAsync<SubCategory>(query, new { Name = name }, transaction: _db._transaction);
             }
             else
             {

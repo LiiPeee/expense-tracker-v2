@@ -16,6 +16,7 @@ public static class ApplicationDependencyWebApi
         .AddScoped<IContactAppService, ContactAppService>()
         .AddScoped<ITransactionsAppService, TransactionsAppService>()
         .AddScoped<ISubCategoryAppService, SubCategoryAppService>()
+        .AddScoped<IBudgetLimitService, BudgetLimitService>()
         .AddScoped<IPasswordHelper, PasswordHelper>()
         .AddScoped<ICategoryAppService, CategoryAppService>();
 
