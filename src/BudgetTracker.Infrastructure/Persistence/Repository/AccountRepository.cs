@@ -19,7 +19,7 @@ public class AccountRepository : RepositoryBase<Account>, IAccountRepository
             throw new Exception("connection lost");
         }
 
-        var acount = await _db._connection.QueryFirstOrDefaultAsync<Account>(query, new { Email = email });
+        var acount = await _db._connection.QueryFirstOrDefaultAsync<Account>(query, new { Email = email }, _db._transaction);
         return acount;
     }
 
@@ -27,11 +27,9 @@ public class AccountRepository : RepositoryBase<Account>, IAccountRepository
     {
         var query = @"SELECT * FROM Account WHERE EmailVerificationToken = @EmailVerificationToken";
 
-        var parameters = new DynamicParameters();
-
         if (_db._connection.State != ConnectionState.Open) throw new InvalidOperationException("Error of connection");
 
-        var account = await _db._connection.QueryFirstOrDefaultAsync<Account>(query, new { EmailVerificationToken = token });
+        var account = await _db._connection.QueryFirstOrDefaultAsync<Account>(query, new { EmailVerificationToken = token }, _db._transaction);
 
         return account;
     }

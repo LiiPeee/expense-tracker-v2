@@ -6,18 +6,10 @@ using BudgetTracker.Core.Domain.UnitOfWork;
 
 namespace BudgetTracker.Application.Service;
 
-public class AddressAppService : IAddressAppService
+public class AddressAppService(IContactRepository contactRepository, IAddressRepository addressRepository, IUnitOfWork unitOfWork) : IAddressAppService
 {
-    private readonly IAddressRepository _addressRepository;
-    private readonly IContactRepository _contactRepository;
-    public readonly IUnitOfWork _unitOfWork;
-
-    public AddressAppService(IContactRepository contactRepository, IAddressRepository addressRepository, IUnitOfWork unitOfWork)
-    {
-        _addressRepository = addressRepository;
-        _contactRepository = contactRepository;
-        _unitOfWork = unitOfWork;
-    }
+    private readonly IAddressRepository _addressRepository = addressRepository;
+    public readonly IUnitOfWork _unitOfWork = unitOfWork;
 
     public async Task CreateAsync(AddressRequest addressRequest)
     {

@@ -63,7 +63,7 @@ public class TransactionsServiceTest
 
         _categoryRepo.Setup(r => r.GetByNameAsync(It.IsAny<string>())).ReturnsAsync(category);
         _contactRepo.Setup(r => r.GetByNameAsync(1, "John")).ReturnsAsync(contact);
-        _subCategoryRepo.Setup(r => r.GetByNameAsync("Lunch")).ReturnsAsync(subCategory);
+        _subCategoryRepo.Setup(r => r.GetByNameAsync(1, "Lunch")).ReturnsAsync(subCategory);
         _transactionsRepo.Setup(r => r.AddAsync(It.IsAny<Transactions>())).ReturnsAsync(saved);
 
         var result = await _service.CreateAsync(1, request);

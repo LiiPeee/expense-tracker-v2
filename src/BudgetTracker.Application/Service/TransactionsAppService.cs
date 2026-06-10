@@ -47,7 +47,7 @@ public class TransactionsAppService : ITransactionsAppService
                 throw new KeyNotFoundException("we cannot find contact or category for this transaction");
             }
 
-            var subCategory = await _subCategoryRepository.GetByNameAsync(transactionRequest.SubCategoryName)
+            var subCategory = await _subCategoryRepository.GetByNameAsync(accountId, transactionRequest.SubCategoryName)
                 ?? await _subCategoryRepository.AddAsync(new SubCategory 
                 { Name = transactionRequest.SubCategoryName, IsActive = true, CategoryId = category.Id, AccountId = accountId });
 

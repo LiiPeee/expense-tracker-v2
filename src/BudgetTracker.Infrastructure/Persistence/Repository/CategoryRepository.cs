@@ -13,11 +13,11 @@ public class CategoryRepository : RepositoryBase<Category>, ICategoryRepository
 
     public async Task<Category?> GetByNameAsync(string name)
     {
-        var query = $"SELECT * FROM Category WHERE Name = @Name";
+        var query = @"SELECT * FROM Category WHERE Name = @Name ORDER BY Id LIMIT 1";
 
         if (_db._connection.State == ConnectionState.Open)
         {
-            return await _db._connection.QuerySingleOrDefaultAsync<Category?>(query, new { Name = name }, transaction: _db._transaction);
+            return await _db._connection.QueryFirstOrDefaultAsync<Category>(query, new { Name = name }, transaction: _db._transaction);
         }
         else
         {
