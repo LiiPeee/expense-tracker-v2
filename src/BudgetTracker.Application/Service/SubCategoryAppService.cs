@@ -21,6 +21,9 @@ namespace BudgetTracker.Application.Service
         {
             try
             {
+                if (await _subCategoryRepository.GetByNameAsync(accountId, request.Name) is not null)
+                    throw new ArgumentException("subcategory already exists for this account");
+
                 SubCategory subCategory = new SubCategory
                 {
                     Name = request.Name,

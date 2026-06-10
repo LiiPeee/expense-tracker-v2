@@ -13,10 +13,10 @@ public class ContactRepository : RepositoryBase<Contact>, IContactRepository
 
     public async Task<Contact?> GetByNameAsync(long accountId, string name)
     {
-        var query = "SELECT * FROM Contact WHERE Name = @Name AND AccountId = @AccountId";
+        var query = "SELECT * FROM Contact WHERE Name = @Name AND AccountId = @AccountId ORDER BY Id LIMIT 1";
 
         if(_db._connection.State == ConnectionState.Open)
-            return await _db._connection.QuerySingleOrDefaultAsync<Contact>(query, new { Name = name, AccountId = accountId }, transaction: _db._transaction);
+            return await _db._connection.QueryFirstOrDefaultAsync<Contact>(query, new { Name = name, AccountId = accountId }, transaction: _db._transaction);
         else
         {
             throw new Exception("lost connection");
