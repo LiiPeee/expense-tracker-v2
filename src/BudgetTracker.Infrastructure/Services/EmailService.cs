@@ -46,15 +46,21 @@ public class EmailService(IHttpClientFactory httpClientFactory, IConfiguration c
                 <table width='600' style='background:#fff; border-radius:8px; padding:32px; margin:auto;'>
                     <tr>
                         <td style='background:#4F46E5; padding:24px; text-align:center;'>
-                            <h1 style='color:#fff; margin:0;'>Expense Tracker</h1>
+                            <h1 style='color:#fff; margin:0;'>Controle Financeiro</h1>
                         </td>
                     </tr>
                     <tr>
                         <td style='padding:32px;'>
                             <h2 style='color:#111827;'>Confirme sua conta</h2>
                             <p style='color:#6B7280; font-size:16px; line-height:1.6;'>
-                                Obrigado por se cadastrar! Clique no botão abaixo para verificar seu email.
+                                Obrigado por se cadastrar! Use o código abaixo ou clique no botão para verificar seu email.
                             </p>
+
+                            <p style='color:#111827; font-size:14px; text-align:center; margin:32px 0 8px 0;'>Seu código de verificação:</p>
+                            <div style='text-align:center; font-size:32px; font-weight:bold; letter-spacing:8px; color:#4F46E5; background:#EEF2FF; border-radius:8px; padding:16px; margin:0 auto 8px auto; max-width:280px;'>
+                                {token}
+                            </div>
+
                             <div style='text-align:center; margin:32px 0;'>
                                 <a href='{url}'
                                    style='background:#4F46E5; color:#fff; padding:14px 32px;
