@@ -22,41 +22,57 @@ namespace BudgetTracker.Application.Service
 
         public async Task<BudgetLimit> CreateAsync(CreateBudgetLimit request)
         {
-            var category = await _categoryRepository.GetByNameAsync(request.CategoryName) ?? throw new KeyNotFoundException("we cannot find category for this transaction"); ;
-
-            BudgetLimit budget = new()
+            try
             {
-                AccountId = request.AccountId,
-                CategoryId = category.Id,
-                LimitAmount = request.LimitAmount,
-                IsLimit = false,
-                Month = request.Month,
-                Year = request.Year
-            };
+                var category = await _categoryRepository.GetByNameAsync(EnumHelper.Category(request.CategoryName)) ?? throw new KeyNotFoundException("we cannot find category for this transaction");
 
-            await _budgetLimitRepository.AddAsync(budget);
+                BudgetLimit budget = new()
+                {
+                    AccountId = request.AccountId,
+                    CategoryId = category.Id,
+                    LimitAmount = request.LimitAmount,
+                    IsLimit = false,
+                    Month = request.Month,
+                    Year = request.Year
+                };
 
-            return budget;
+                await _budgetLimitRepository.AddAsync(budget);
+
+                return budget;
+            }
+            catch (Exception ex)
+            {
+                _unitOfWork.Rollback();
+                throw;
+            }
         }
 
-        public async Task<BudgetLimit> UpdateAsync(decimal amount,string categoryName, long accountId)
+        public async Task UpdateAsync(decimal amount,string categoryName, long accountId)
         {
-            BudgetLimit budgetLimit = await _budgetLimitRepository.GetByCategoryAndAccountIdAsync(categoryName, accountId) 
-                ?? throw new KeyNotFoundException("we cannot find budget limit for this category");
+            try
+            {
+                var budgetLimit = await _budgetLimitRepository.GetByCategoryAndAccountIdAsync(categoryName.ToUpper(), accountId);
 
-            var exceed = budgetLimit.LimitAmount + amount > budgetLimit.LimitAmount;
+                if (budgetLimit is null) return;
+                    
+                var exceed = budgetLimit.LimitAmount + amount > budgetLimit.LimitAmount;
 
-            var percentage = (amount / budgetLimit.LimitAmount) * 100;
+                var percentage = (amount / budgetLimit.LimitAmount) * 100;
 
-            budgetLimit.Percentage = percentage;
-            budgetLimit.IsLimit = exceed;
+                budgetLimit.Percentage = percentage;
+                budgetLimit.IsLimit = exceed;
+                budgetLimit.LimitAmount -= amount;
 
-            _unitOfWork.BeginTransaction();
+                _unitOfWork.BeginTransaction();
 
-            await _budgetLimitRepository.UpdateAsync(budgetLimit);
-            _unitOfWork.Commit();
-
-            return budgetLimit;
+                await _budgetLimitRepository.UpdateAsync(budgetLimit);
+                _unitOfWork.Commit();
+            }
+            catch (Exception ex)
+            {
+                _unitOfWork.Rollback();
+                throw;
+            }
         }
 
         public async Task<IPagedResult<BudgetLimit?>> GetByAccountIdAsync(long accountId, int pageNumber = 1)

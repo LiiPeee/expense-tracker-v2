@@ -7,6 +7,7 @@ using BudgetTracker.Core.Domain.UnitOfWork;
 using BudgetTracker.Core.Domain.Utils;
 using BudgetTracker.Core.Infrastructure.Repository;
 using BudgetTracker.Core.Infrastructure.Services;
+using Google.Apis.Auth;
 using Microsoft.AspNet.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -386,6 +387,64 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
             _unitOfWork.Commit();
 
             return refreshToken;
+        }
+        catch
+        {
+            _unitOfWork.Rollback();
+            throw;
+        }
+    }
+
+    public async Task<TokenResponseDto?> SignInGoogleAsync(GoogleLoginRequestDto request)
+    {
+        var payload = await ValidateGoogleTokenAsync(request.IdToken);
+
+        var account = await _accountRepository.GetByEmailAsync(payload.Email);
+                      
+        if(account is not null) throw new ArgumentException("account is already exist");
+
+        if (!account.IsActive) throw new Exception("account is not active");
+
+        account = await CreateAccountFromGoogleAsync(payload);
+
+        return new TokenResponseDto
+        {
+            AccessToken = CreateToken(account),
+            RefreshToken = await GenerateAndSaveRefreshToken(account)
+        };
+    }
+
+    private async Task<GoogleJsonWebSignature.Payload> ValidateGoogleTokenAsync(string idToken)
+    {
+        var settings = new GoogleJsonWebSignature.ValidationSettings
+        {
+            Audience = [configuration.GetValue<string>("Authentication:Google:ClientId")]
+        };
+
+        return await GoogleJsonWebSignature.ValidateAsync(idToken, settings);
+    }
+
+    private async Task<Account> CreateAccountFromGoogleAsync(GoogleJsonWebSignature.Payload payload)
+    {
+        var account = new Account
+        {
+            FirstName = payload.GivenName ?? string.Empty,
+            LastName = payload.FamilyName ?? string.Empty,
+            Email = payload.Email,
+            Password = null,                
+            Balance = 0,
+            Role = "User",
+            IsActive = true,
+            EmailVerified = payload.EmailVerified,   
+            VerifiedAt = payload.EmailVerified ? DateTime.UtcNow : null
+        };
+
+        try
+        {
+            _unitOfWork.BeginTransaction();
+            var saved = await _accountRepository.AddAsync(account);
+            _unitOfWork.Commit();
+            return saved;
         }
         catch
         {

@@ -15,6 +15,8 @@ public interface IAuthenticationAppService
     Task<string?> VerifyEmailAsync(string email);
     Task<string?> ResetPasswordAsync(ResetPasswordRequestDto request);
     Task<string?> ValidateResetCodeAsync(string email, string token);
+    Task<TokenResponseDto?> SignInGoogleAsync(GoogleLoginRequestDto request);
+
 }
 
 

@@ -1,14 +1,16 @@
-using System.Text;
-using System.Text.Json;
 using AspNetCoreRateLimit;
 using BudgetTracker.Application;
 using BudgetTracker.Core.Domain.Options;
 using BudgetTracker.Infrastructure;
 using DotNetEnv;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Text;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,7 +25,15 @@ Env.Load();
 builder.Services.ConfigureApplicationServicesWebApi(builder.Configuration);
 builder.Services.AddInfrastructureWebApi(builder.Configuration);
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+// API stateless: o JWT é o esquema padrão de autenticação E de challenge, para que
+// endpoints [Authorize] validem o Bearer token e retornem 401 em falha. Cookie/Google
+// ficam registrados (para um eventual fluxo de login Google), mas NÃO como padrão —
+// senão o challenge cairia num redirect 302 para o Google em vez de 401.
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -38,7 +48,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Token"]!)),
             ClockSkew = TimeSpan.Zero
         };
+    })
+    .AddCookie()
+    .AddGoogle(options =>
+    {
+        options.ClientId =
+            builder.Configuration["Google:ClientId"];
+
+        options.ClientSecret =
+            builder.Configuration["Google:ClientSecret"];
     });
+
 
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>

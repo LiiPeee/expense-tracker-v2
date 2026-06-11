@@ -12,7 +12,7 @@ namespace BudgetTracker.Core.Domain.Service
     public interface IBudgetLimitService
     {
         Task<BudgetLimit> CreateAsync(CreateBudgetLimit request);
-        Task<BudgetLimit> UpdateAsync(decimal amount, string categoryName, long accountId);
+        Task UpdateAsync(decimal amount, string categoryName, long accountId);
         Task<IPagedResult<BudgetLimit?>> GetByAccountIdAsync(long accountId, int pageNumber = 1);
     }
 }

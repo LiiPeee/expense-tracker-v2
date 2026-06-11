@@ -53,7 +53,7 @@ public class TransactionsAppService : ITransactionsAppService
                 throw new KeyNotFoundException("we cannot find contact or category for this transaction");
             }
 
-            var subCategory = await _subCategoryRepository.GetByNameAsync(accountId, transactionRequest.SubCategoryName)
+            var subCategory = await _subCategoryRepository.GetByNameAsync(accountId, transactionRequest.SubCategoryName, category.Id)
                 ?? await _subCategoryRepository.AddAsync(new SubCategory 
                 { Name = transactionRequest.SubCategoryName, IsActive = true, CategoryId = category.Id, AccountId = accountId });
 
@@ -82,7 +82,9 @@ public class TransactionsAppService : ITransactionsAppService
 
             if (recurrenceId == 5)
             {
-                transaction.CreatedAt = new DateTime().AddMonths(1);
+                var dateNow = DateTime.UtcNow;
+
+                transaction.CreatedAt = dateNow.AddMonths(1);
             }
             var savedTransaction = await _transactionRepository.AddAsync(transaction);
             _unitOfWork.Commit();

@@ -65,7 +65,7 @@ namespace BudgetTracker.Infrastructure.Persistence.Repository
         public async Task<BudgetLimit?> GetByCategoryAndAccountIdAsync(string categoryName, long accountId)
         {
             var query = @"SELECT * FROM BudgetLimit bt 
-            INNER JOIN Categoy ct ON ct.Id = bt.CategoryId
+            INNER JOIN Category ct ON ct.Id = bt.CategoryId
             INNER JOIN Account act ON act.Id = bt.AccountId
             WHERE ct.Name = @CategoryName AND act.Id = @AccountId";
 
