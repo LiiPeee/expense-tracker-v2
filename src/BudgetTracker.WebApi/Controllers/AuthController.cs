@@ -20,10 +20,23 @@ namespace BudgetTracker.WebApi.Controller
         {
             return Ok(await _accountAppService.SignUpAsync(request));
         }
+
         [HttpPost("[action]")]
         public async Task<ActionResult<TokenResponseDto?>> SignInAsync([FromBody] LoginRequestDto request)
         {
             var login = await _accountAppService.SignInAsync(request);
+            if (login == null)
+            {
+                return Unauthorized();
+            }
+
+            return Ok(login);
+        }
+
+        [HttpPost("[action]")]
+        public async Task<ActionResult<TokenResponseDto?>> SignInGoogleAsync([FromBody] GoogleLoginRequestDto request)
+        {
+            var login = await _accountAppService.SignInGoogleAsync(request);
             if (login == null)
             {
                 return Unauthorized();

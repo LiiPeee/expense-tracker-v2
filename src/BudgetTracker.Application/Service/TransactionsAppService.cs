@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using BudgetTracker.Core.Domain.Dtos.Output;
 using BudgetTracker.Core.Domain.Dtos.Request.Transaction;
 using BudgetTracker.Core.Domain.Entities;
@@ -16,6 +19,7 @@ public class TransactionsAppService : ITransactionsAppService
     private readonly IAccountRepository _accountRepository;
     private readonly IContactRepository _contactRepository;
     private readonly ISubCategoryRepository _subCategoryRepository;
+    private readonly IBudgetLimitService _budgetLimitService;
     private readonly IUnitOfWork _unitOfWork;
 
     public TransactionsAppService(ITransactionsRepository transactionRepository,
@@ -23,9 +27,11 @@ public class TransactionsAppService : ITransactionsAppService
         IContactRepository contactRepository,
         ISubCategoryRepository subCategoryRepository,
         IAccountRepository accountRepository,
+        IBudgetLimitService budgetLimitService,
         IUnitOfWork unitOfWork)
     {
         _transactionRepository = transactionRepository;
+        _budgetLimitService = budgetLimitService;
         _categoryRepository = categoryRepository;
         _contactRepository = contactRepository;
         _accountRepository = accountRepository;
@@ -47,7 +53,7 @@ public class TransactionsAppService : ITransactionsAppService
                 throw new KeyNotFoundException("we cannot find contact or category for this transaction");
             }
 
-            var subCategory = await _subCategoryRepository.GetByNameAsync(accountId, transactionRequest.SubCategoryName)
+            var subCategory = await _subCategoryRepository.GetByNameAsync(accountId, transactionRequest.SubCategoryName, category.Id)
                 ?? await _subCategoryRepository.AddAsync(new SubCategory 
                 { Name = transactionRequest.SubCategoryName, IsActive = true, CategoryId = category.Id, AccountId = accountId });
 
@@ -58,6 +64,7 @@ public class TransactionsAppService : ITransactionsAppService
             {
                 return await CreateInstallemntsAsync(transactionRequest, category.Id, contact.Id, recurrenceId, typeTransactionId, accountId, subCategory.Id);
             }
+
             Transactions transaction = new()
             {
                 AccountId = accountId,
@@ -75,10 +82,14 @@ public class TransactionsAppService : ITransactionsAppService
 
             if (recurrenceId == 5)
             {
-                transaction.CreatedAt = new DateTime().AddMonths(1);
+                var dateNow = DateTime.UtcNow;
+
+                transaction.CreatedAt = dateNow.AddMonths(1);
             }
             var savedTransaction = await _transactionRepository.AddAsync(transaction);
             _unitOfWork.Commit();
+
+            await _budgetLimitService.UpdateAsync(transaction.Amount, category.Name, accountId);
 
             return new List<Transactions> { savedTransaction };
         }

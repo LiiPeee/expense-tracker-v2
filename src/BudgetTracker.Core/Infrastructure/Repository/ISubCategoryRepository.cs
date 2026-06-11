@@ -10,7 +10,7 @@ namespace BudgetTracker.Core.Infrastructure.Repository
 {
     public interface ISubCategoryRepository : IRepositoryBase<SubCategory>
     {
-        Task<SubCategory?> GetByNameAsync(long accountId, string name);
+        Task<SubCategory?> GetByNameAsync(long accountId, string name, long? categoryId);
     }
 }
 
