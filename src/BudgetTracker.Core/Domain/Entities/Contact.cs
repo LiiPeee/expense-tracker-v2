@@ -3,7 +3,7 @@ using BudgetTracker.Core.Domain.Enum;
 
 namespace BudgetTracker.Core.Domain.Entities;
 
-public class Contact : BaseEntity
+public class Contact : BaseEntity, IAccountOwned
 {
     public string Name { get; set; } = null!;
     public string? Email { get; set; }

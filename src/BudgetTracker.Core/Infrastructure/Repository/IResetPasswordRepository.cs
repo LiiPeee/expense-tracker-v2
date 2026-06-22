@@ -4,7 +4,7 @@ using BudgetTracker.Core.Domain.Repository;
 
 namespace BudgetTracker.Core.Infrastructure.Repository
 {
-    public interface IResetPasswordRepository : IRepositoryBase<ResetPassword>
+    public interface IResetPasswordRepository : IAccountScopedRepository<ResetPassword>
     {
         Task<ResetPassword?> GetByAccountIdAsync(long accountId);
     }

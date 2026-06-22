@@ -30,6 +30,11 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
     private readonly IPasswordHelper _passwordHelper = passwordHelper;
 
     private readonly IResetPasswordRepository _resetPasswordRepository = resetPasswordRepository;
+
+    // Pre-computed hash used to equalize sign-in timing when the account does not exist,
+    // so response time does not reveal whether an email is registered.
+    private static readonly string DummyPasswordHash = new PasswordHasher().HashPassword("timing-equalizer-not-a-real-password");
+
     public async Task<string?> SignUpAsync(CreateAccountRequestDto request)
     {
         try
@@ -92,12 +97,14 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
             if (account.EmailVerificationToken != request.Token)
             {
                 account.VerifyAttempts += 1;
+                await PersistAccountAsync(account);
                 throw new ArgumentException("Invalid Token");
             }
 
             if (account.EmailVerificationTokenExpiry < DateTime.UtcNow)
             {
                 account.VerifyAttempts += 1;
+                await PersistAccountAsync(account);
                 throw new ArgumentException("Token Expiry");
             }
 
@@ -105,11 +112,9 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
             account.EmailVerificationToken = null;
             account.VerifiedAt = DateTime.UtcNow;
             account.IsActive = true;
+            account.VerifyAttempts = 0;
 
-            _unitOfWork.BeginTransaction();
-            await _accountRepository.UpdateAsync(account);
-
-            _unitOfWork.Commit();
+            await PersistAccountAsync(account);
 
             return "Your email has been verified successfully";
         }
@@ -122,46 +127,43 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
 
     public async Task<string?> ValidateResetCodeAsync(string email, string token)
     {
-        try
+        var account = await _accountRepository.GetByEmailAsync(email);
+
+        if (account is null) throw new ArgumentException("Account not found");
+
+        var resetPassword = await _resetPasswordRepository.GetByAccountIdAsync(account.Id);
+
+        // Verify only — do NOT consume the code here, otherwise ResetPasswordAsync
+        // could never re-validate it. Consumption happens when the password is reset.
+        if (!IsResetCodeValid(resetPassword, token))
+            throw new UnauthorizedAccessException("Invalid or expired reset code");
+
+        return "Token Validated";
+    }
+
+    private static bool IsResetCodeValid(ResetPassword? resetPassword, string providedCode)
+    {
+        if (resetPassword is null
+            || string.IsNullOrEmpty(resetPassword.HashedToken)
+            || resetPassword.ExpireAt < DateTime.UtcNow)
         {
-
-            var account = await _accountRepository.GetByEmailAsync(email);
-
-            if (account is null) throw new ArgumentException("Account not found");
-
-            var resetPassword = await _resetPasswordRepository.GetByAccountIdAsync(account.Id);
-
-            if (resetPassword is null || resetPassword.ExpireAt < DateTime.UtcNow || resetPassword.HashedToken != token)
-            {
-                throw new ArgumentException("Invalid Token");
-            }
-
-            if (resetPassword.HashedToken != token)
-            {
-                throw new ArgumentException("Invalid Token");
-            }
-            var updatedResetPassword = new ResetPassword()
-            {
-                Id = resetPassword.Id,
-                AccountId = resetPassword.AccountId,
-                HashedToken = null,
-                ExpireAt = DateTime.UtcNow,
-                CreatedAt = resetPassword.CreatedAt
-            };
-
-            _unitOfWork.BeginTransaction();
-
-            await _resetPasswordRepository.UpdateAsync(updatedResetPassword);
-
-            _unitOfWork.Commit();
-
-            return "Token Validated";
+            return false;
         }
-        catch (Exception ex)
-        {
-            _unitOfWork.Rollback();
-            throw;
-        }
+
+        // Stored value is the hash of the code (the plaintext was only ever emailed); compare hashes.
+        var stored = Encoding.UTF8.GetBytes(resetPassword.HashedToken);
+        var provided = Encoding.UTF8.GetBytes(HashResetCode(providedCode ?? string.Empty));
+        return CryptographicOperations.FixedTimeEquals(stored, provided);
+    }
+
+    private static string HashResetCode(string code)
+        => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(code)));
+
+    private async Task PersistAccountAsync(Account account)
+    {
+        _unitOfWork.BeginTransaction();
+        await _accountRepository.UpdateAsync(account);
+        _unitOfWork.Commit();
     }
     public async Task<string?> VerifyEmailAsync(string email)
     {
@@ -175,7 +177,7 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
             var resetPassword = new ResetPassword()
             {
                 AccountId = account.Id,
-                HashedToken = token,
+                HashedToken = HashResetCode(token),
                 ExpireAt = DateTime.UtcNow.AddHours(1),
                 CreatedAt = DateTime.UtcNow,
             };
@@ -227,13 +229,19 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
 
             var resetPassword = await _resetPasswordRepository.GetByAccountIdAsync(account.Id);
 
-            var hashPassword = new PasswordHasher().HashPassword(request.newPassword);
+            if (!IsResetCodeValid(resetPassword, request.token))
+                throw new UnauthorizedAccessException("Invalid or expired reset code");
 
-            account.Password = hashPassword;
+            account.Password = new PasswordHasher().HashPassword(request.newPassword);
+
+            // Invalidate the code so it cannot be replayed, atomically with the password change.
+            resetPassword!.HashedToken = null;
+            resetPassword.ExpireAt = DateTime.UtcNow;
 
             _unitOfWork.BeginTransaction();
 
             await _accountRepository.UpdateAsync(account);
+            await _resetPasswordRepository.UpdateAsync(resetPassword);
 
             _unitOfWork.Commit();
 
@@ -252,18 +260,24 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
         {
             var account = await _accountRepository.GetByEmailAsync(request.Email);
 
-            if (account == null) throw new Exception("email is invalid");
+            // Generic message + dummy hash verification: avoids both message-based and
+            // timing-based account enumeration (the hash check costs the same whether or not the email exists).
+            if (account == null)
+            {
+                new PasswordHasher().VerifyHashedPassword(DummyPasswordHash, request.Password);
+                throw new UnauthorizedAccessException("invalid credentials");
+            }
 
-            if (account.VerifyAttempts > 5) throw new Exception("exceeds attempts");
+            if (account.VerifyAttempts > 5) throw new UnauthorizedAccessException("exceeds attempts");
 
             if (new PasswordHasher().VerifyHashedPassword(account.Password, request.Password) == PasswordVerificationResult.Failed)
             {
-                throw new Exception("password is invalid");
+                throw new UnauthorizedAccessException("invalid credentials");
             }
 
-            if (account.IsActive == false) throw new Exception("account is not active");
+            if (account.IsActive == false) throw new UnauthorizedAccessException("account is not active");
 
-            if (account.EmailVerified == false) throw new Exception("email is not verified");
+            if (account.EmailVerified == false) throw new UnauthorizedAccessException("email is not verified");
 
             return new TokenResponseDto()
             {
@@ -400,12 +414,15 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
         var payload = await ValidateGoogleTokenAsync(request.IdToken);
 
         var account = await _accountRepository.GetByEmailAsync(payload.Email);
-                      
-        if(account is not null) throw new ArgumentException("account is already exist");
 
-        if (!account.IsActive) throw new Exception("account is not active");
-
-        account = await CreateAccountFromGoogleAsync(payload);
+        if (account is null)
+        {
+            account = await CreateAccountFromGoogleAsync(payload);
+        }
+        else if (!account.IsActive)
+        {
+            throw new UnauthorizedAccessException("account is not active");
+        }
 
         return new TokenResponseDto
         {

@@ -38,6 +38,14 @@ namespace BudgetTracker.WebApi.Controller
             return Ok();
         }
 
+        [HttpPost("[action]")]
+        public async Task<ActionResult> EditTransactionAsync([FromQuery] long id, [FromBody] CreateTrasactionRequest transactionRequest)
+        {
+            var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            await _transactionAppService.EditTransactionAsync(accountId, id, transactionRequest);
+            return Ok();
+        }
+
         [HttpGet("[action]")]
         public async Task<ActionResult<IPagedResult<FilterByMonthAndYearOutPut>>> GetByCategoryAsync(
             [FromQuery] Categories categoryName,
@@ -63,21 +71,21 @@ namespace BudgetTracker.WebApi.Controller
         public async Task<ActionResult<IPagedResult<FilterByMonthAndYearOutPut>>> GetByMonthAndYearAsync(
             [FromQuery][Range(1, 12)] long month,
             [FromQuery][Range(2000, 2100)] long year,
-            [FromQuery][Range(1, 10)] int pageNumber = 1)
+            [FromQuery][Range(1, int.MaxValue)] int pageNumber = 1)
         {
             var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            return Ok(await _transactionAppService.FilterByMonthAndYearsync(accountId, month, year, pageNumber));
+            return Ok(await _transactionAppService.FilterByMonthAndYearAsync(accountId, month, year, pageNumber));
         }
 
         [HttpGet("[action]")]
         public async Task<ActionResult<List<FilterByMonthAndYearOutPut>>> GetByContactAsync(
             [FromQuery][Range(2000, 2100)] long year,
             [FromQuery][Range(1, 12)] long month,
-            [FromQuery][StringLength(50)] string contactName,
-            [FromQuery] TypeTransaction type, [FromQuery][Range(1, 10)] int pageNumber = 1)
+            [FromQuery] long contactId,
+            [FromQuery] TypeTransaction type, [FromQuery][Range(1, int.MaxValue)] int pageNumber = 1)
         {
             var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            return Ok(await _transactionAppService.FilterByContactAndMonth(accountId, year, month, type, contactName, pageNumber));
+            return Ok(await _transactionAppService.FilterByContactAndMonth(accountId, year, month, type, contactId, pageNumber));
         }
 
         [HttpGet("[action]")]

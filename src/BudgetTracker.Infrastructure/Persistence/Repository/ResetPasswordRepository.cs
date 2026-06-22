@@ -7,7 +7,7 @@ using BudgetTracker.Core.Infrastructure.Repository;
 
 namespace BudgetTracker.Infrastructure.Persistence.Repository
 {
-    public class ResetPasswordRepository : RepositoryBase<ResetPassword>, IResetPasswordRepository
+    public class ResetPasswordRepository : AccountScopedRepositoryBase<ResetPassword>, IResetPasswordRepository
     {
         public ResetPasswordRepository(DbSession connection) : base(connection)
         {

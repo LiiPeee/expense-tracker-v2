@@ -5,6 +5,7 @@ namespace BudgetTracker.Core.Domain.Models.Request.Account
     {
         public string email { get; set; }
         public string newPassword { get; set; }
+        public string token { get; set; }
     }
 }
 

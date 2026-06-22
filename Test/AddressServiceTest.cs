@@ -36,26 +36,42 @@ public class AddressServiceTest
     };
 
     [Test]
-    public async Task CreateAsync_ValidRequest_SavesAddressAndCommits()
+    public async Task CreateAsync_ContactOwnedByAccount_SavesAddressLinkedToContactAndCommits()
     {
+        _contactRepo.Setup(r => r.GetByNameAsync(1, "Test")).ReturnsAsync(new Contact { Id = 7, AccountId = 1 });
         _addressRepo.Setup(r => r.AddAsync(It.IsAny<Address>())).ReturnsAsync(new Address { Id = 1, City = "SP" });
 
-        await _service.CreateAsync(BuildRequest());
+        await _service.CreateAsync(1, BuildRequest());
 
         _addressRepo.Verify(r => r.AddAsync(It.Is<Address>(a =>
             a.City == "SP" &&
-            a.IsPrimary == true)), Times.Once);
+            a.IsPrimary == true &&
+            a.ContactId == 7)), Times.Once);
 
         _unitOfWork.Verify(u => u.BeginTransaction(), Times.Once);
         _unitOfWork.Verify(u => u.Commit(), Times.Once);
     }
 
     [Test]
-    public async Task CreateAsync_RepositoryThrows_RollsBackAndRethrows()
+    public void CreateAsync_ContactNotOwnedByAccount_ThrowsUnauthorizedAndDoesNotInsert()
     {
+        // Scoped lookup returns null when the contact is not owned by the account.
+        _contactRepo.Setup(r => r.GetByNameAsync(1, "Test")).ReturnsAsync((Contact?)null);
+
+        Assert.ThrowsAsync<UnauthorizedAccessException>(() => _service.CreateAsync(1, BuildRequest()));
+
+        _addressRepo.Verify(r => r.AddAsync(It.IsAny<Address>()), Times.Never);
+        _unitOfWork.Verify(u => u.Rollback(), Times.Once);
+        _unitOfWork.Verify(u => u.Commit(), Times.Never);
+    }
+
+    [Test]
+    public void CreateAsync_RepositoryThrows_RollsBackAndRethrows()
+    {
+        _contactRepo.Setup(r => r.GetByNameAsync(1, "Test")).ReturnsAsync(new Contact { Id = 7, AccountId = 1 });
         _addressRepo.Setup(r => r.AddAsync(It.IsAny<Address>())).ThrowsAsync(new Exception("db error"));
 
-        Assert.ThrowsAsync<Exception>(() => _service.CreateAsync(BuildRequest()));
+        Assert.ThrowsAsync<Exception>(() => _service.CreateAsync(1, BuildRequest()));
 
         _unitOfWork.Verify(u => u.Rollback(), Times.Once);
         _unitOfWork.Verify(u => u.Commit(), Times.Never);

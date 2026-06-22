@@ -10,8 +10,12 @@ namespace BudgetTracker.WebApi.Models.Auth
 
         [Required]
         [StringLength(20, MinimumLength = 8, ErrorMessage = "Senha deve ter entre 8 e 20 caracteres")]
-        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).{8,}$", ErrorMessage = "Senha deve conter: letra minúscula, maiúscula, número e caractere especial")]
+        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).{8,}$", ErrorMessage = "Senha deve conter: letra minï¿½scula, maiï¿½scula, nï¿½mero e caractere especial")]
         public string newPassword { get; set; }
+
+        // Reset code sent to the user's email â€” required to authorize the password change.
+        [Required]
+        public string token { get; set; }
     }
 }
 

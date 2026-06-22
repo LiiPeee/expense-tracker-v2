@@ -44,9 +44,9 @@ namespace BudgetTracker.Application.Service
             }
         }
 
-        public async Task<IEnumerable<SubCategory>> GetAllAsync()
+        public async Task<IEnumerable<SubCategory>> GetAllAsync(long accountId)
         {
-            return await _subCategoryRepository.GetAllAsync();
+            return await _subCategoryRepository.GetAllAsync(accountId);
         }
     }
 }

@@ -1,9 +1,5 @@
 using BudgetTracker.Core.Domain.Enum;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace BudgetTracker.Application
 {
@@ -47,38 +43,38 @@ namespace BudgetTracker.Application
                 _ => throw new NotImplementedException(),
             };
         }
-        public static string Category(string category)
+        public static long Category(string category)
         {
             switch (category)
             {
-                case "Alimentação":
-                    return Categories.ALIMENTACAO.ToString();
-                case "Conforto":
-                    return Categories.CONFORTO.ToString();
                 case "Moradia":
-                    return Categories.MORADIA.ToString();
+                    return 1;
                 case "Transporte":
-                    return Categories.TRANSPORTE.ToString();
+                    return 2;
+                case "Alimentação":
+                    return 3;
                 case "Saúde":
-                    return Categories.SAUDE.ToString();
+                    return 4;
                 case "Educação":
-                    return Categories.EDUCACAO.ToString();
+                    return 5;
                 case "Lazer":
-                    return Categories.LAZER.ToString();
+                    return 6;
                 case "Bens Pessoais":
-                    return Categories.BENS_PESSOAIS.ToString();
+                    return 7;
                 case "Investimento":
-                    return Categories.INVESTIMENTO.ToString();
-                case "Outros":
-                    return Categories.OUTROS.ToString();
+                    return 8;
                 case "Renda variável":
-                    return Categories.RENDA_VARIAVEL.ToString();
+                    return 9;
                 case "Benefícios":
-                    return Categories.BENEFICIOS.ToString();
+                    return 10;
                 case "Salário":
-                    return Categories.SALARIO.ToString();
+                    return 11;
+                case "Conforto":
+                    return 12;
+                case "Outros":
+                    return 13;
                 default:
-                    throw new Exception($"{category} não é uma categoria suportada.");
+                    throw new KeyNotFoundException($"Category '{category}' is not supported.");
             }
         }
     }

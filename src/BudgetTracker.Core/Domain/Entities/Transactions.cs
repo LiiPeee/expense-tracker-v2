@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace BudgetTracker.Core.Domain.Entities;
 
-public class Transactions : BaseEntity
+public class Transactions : BaseEntity, IAccountOwned
 {
     public decimal Amount { get; set; }
     public required string Name { get; set; }

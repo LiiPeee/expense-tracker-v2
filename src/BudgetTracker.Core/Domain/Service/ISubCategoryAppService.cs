@@ -6,7 +6,7 @@ namespace BudgetTracker.Core.Domain.Service
     public interface ISubCategoryAppService
     {
         Task CreateAsync(long accountId, CreateSubCategoryRequest request);
-        Task<IEnumerable<SubCategory>> GetAllAsync();
+        Task<IEnumerable<SubCategory>> GetAllAsync(long accountId);
     }
 }
 

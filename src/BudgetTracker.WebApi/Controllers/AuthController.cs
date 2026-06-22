@@ -63,7 +63,8 @@ namespace BudgetTracker.WebApi.Controller
             var resetPassword = new ResetPasswordRequestDto()
             {
                 email = request.email,
-                newPassword = request.newPassword
+                newPassword = request.newPassword,
+                token = request.token
             };
 
             return Ok(await _accountAppService.ResetPasswordAsync(resetPassword));

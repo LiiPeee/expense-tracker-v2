@@ -4,6 +4,7 @@ using BudgetTracker.Core.Domain.Dtos.Request.Transaction;
 using BudgetTracker.Core.Domain.Entities;
 using BudgetTracker.Core.Domain.Enum;
 using BudgetTracker.Core.Domain.Repository;
+using BudgetTracker.Core.Domain.Service;
 using BudgetTracker.Core.Domain.UnitOfWork;
 using BudgetTracker.Core.Infrastructure.Repository;
 using Moq;
@@ -23,12 +24,12 @@ public class TransactionsServiceTest
     [SetUp]
     public void Setup()
     {
-        _transactionsRepo  = new Mock<ITransactionsRepository>();
-        _categoryRepo      = new Mock<ICategoryRepository>();
-        _contactRepo       = new Mock<IContactRepository>();
-        _subCategoryRepo   = new Mock<ISubCategoryRepository>();
-        _accountRepo       = new Mock<IAccountRepository>();
-        _unitOfWork        = new Mock<IUnitOfWork>();
+        _transactionsRepo   = new Mock<ITransactionsRepository>();
+        _categoryRepo       = new Mock<ICategoryRepository>();
+        _contactRepo        = new Mock<IContactRepository>();
+        _subCategoryRepo    = new Mock<ISubCategoryRepository>();
+        _accountRepo        = new Mock<IAccountRepository>();
+        _unitOfWork         = new Mock<IUnitOfWork>();
 
         _service = new TransactionsAppService(
             _transactionsRepo.Object,
@@ -63,7 +64,7 @@ public class TransactionsServiceTest
 
         _categoryRepo.Setup(r => r.GetByNameAsync(It.IsAny<string>())).ReturnsAsync(category);
         _contactRepo.Setup(r => r.GetByNameAsync(1, "John")).ReturnsAsync(contact);
-        _subCategoryRepo.Setup(r => r.GetByNameAsync(1, "Lunch")).ReturnsAsync(subCategory);
+        _subCategoryRepo.Setup(r => r.GetByNameAsync(1, "Lunch", It.IsAny<long?>())).ReturnsAsync(subCategory);
         _transactionsRepo.Setup(r => r.AddAsync(It.IsAny<Transactions>())).ReturnsAsync(saved);
 
         var result = await _service.CreateAsync(1, request);
@@ -84,7 +85,7 @@ public class TransactionsServiceTest
         {
             Amount          = 10,
             TransactionName = "Test",
-            CategoryName    = "Moradia",
+            CategoryName    = "CategoriaInexistente",
             ContactName     = "X",
             SubCategoryName = "Sub",
             Recurrence      = Recurrence.NONE,
@@ -98,34 +99,108 @@ public class TransactionsServiceTest
     // ── PaidAsync ────────────────────────────────────────────────────────────
 
     [Test]
-    public async Task PaidAsync_ValidTransaction_UpdatesBalanceAndMarksPaid()
+    public async Task PaidAsync_ValidIncomeTransaction_CreditsBalanceAndCommits()
     {
-        var account     = new Account     { Id = 1, Balance = 100 };
+        // INCOME (type 2) → balance increases by +Amount.
         var transaction = new Transactions { Id = 5, AccountId = 1, Amount = 30, Paid = false, TypeTransactionId = 2, Name = "Test" };
 
-        _transactionsRepo.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(transaction);
-        _accountRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(account);
-        _transactionsRepo.Setup(r => r.UpdateAsync(It.IsAny<Transactions>())).ReturnsAsync(true);
-        _accountRepo.Setup(r => r.UpdateAsync(It.IsAny<Account>())).ReturnsAsync(true);
+        _transactionsRepo.Setup(r => r.GetByIdAsync(5, 1)).ReturnsAsync(transaction);
+        _transactionsRepo.Setup(r => r.MarkAsPaidAsync(5, 1)).ReturnsAsync(true);
+        _accountRepo.Setup(r => r.UpdateBalanceAtomicAsync(1, It.IsAny<decimal>())).Returns(Task.CompletedTask);
 
-        var paidRequest = new PaidTransactionRequest { TransactionId = 5, Paid = true };
-        await _service.PaidAsync(1, paidRequest);
+        await _service.PaidAsync(1, new PaidTransactionRequest { TransactionId = 5, Paid = true });
 
-        Assert.That(transaction.Paid, Is.True);
+        _accountRepo.Verify(r => r.UpdateBalanceAtomicAsync(1, 30m), Times.Once);
+        _unitOfWork.Verify(u => u.Commit(), Times.Once);
+    }
+
+    [Test]
+    public async Task PaidAsync_ExpenseTransaction_DebitsBalance()
+    {
+        // EXPENSE (type 1) → balance decreases by -Amount.
+        var transaction = new Transactions { Id = 5, AccountId = 1, Amount = 30, Paid = false, TypeTransactionId = 1, Name = "Test" };
+
+        _transactionsRepo.Setup(r => r.GetByIdAsync(5, 1)).ReturnsAsync(transaction);
+        _transactionsRepo.Setup(r => r.MarkAsPaidAsync(5, 1)).ReturnsAsync(true);
+        _accountRepo.Setup(r => r.UpdateBalanceAtomicAsync(1, It.IsAny<decimal>())).Returns(Task.CompletedTask);
+
+        await _service.PaidAsync(1, new PaidTransactionRequest { TransactionId = 5, Paid = true });
+
+        _accountRepo.Verify(r => r.UpdateBalanceAtomicAsync(1, -30m), Times.Once);
+    }
+
+    [Test]
+    public async Task PaidAsync_LostTheRace_DoesNotTouchBalance()
+    {
+        // MarkAsPaidAsync returns false → another request already flipped it; no double-debit.
+        var transaction = new Transactions { Id = 5, AccountId = 1, Amount = 30, Paid = false, TypeTransactionId = 1, Name = "Test" };
+
+        _transactionsRepo.Setup(r => r.GetByIdAsync(5, 1)).ReturnsAsync(transaction);
+        _transactionsRepo.Setup(r => r.MarkAsPaidAsync(5, 1)).ReturnsAsync(false);
+
+        await _service.PaidAsync(1, new PaidTransactionRequest { TransactionId = 5, Paid = true });
+
+        _accountRepo.Verify(r => r.UpdateBalanceAtomicAsync(It.IsAny<long>(), It.IsAny<decimal>()), Times.Never);
         _unitOfWork.Verify(u => u.Commit(), Times.Once);
     }
 
     [Test]
     public async Task PaidAsync_TransactionBelongsToDifferentAccount_ThrowsUnauthorizedAccessException()
     {
-        var transaction = new Transactions { Id = 5, AccountId = 99, Amount = 30, Paid = false, Name = "Test" };
-
-        _transactionsRepo.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(transaction);
+        // The scoped repository returns null when the transaction is not owned by the account.
+        _transactionsRepo.Setup(r => r.GetByIdAsync(5, 1)).ReturnsAsync((Transactions?)null);
 
         var paidRequest = new PaidTransactionRequest { TransactionId = 5, Paid = true };
 
         Assert.ThrowsAsync<UnauthorizedAccessException>(() => _service.PaidAsync(1, paidRequest));
+        _transactionsRepo.Verify(r => r.UpdateAsync(It.IsAny<Transactions>()), Times.Never);
         _unitOfWork.Verify(u => u.Rollback(), Times.Once);
+    }
+
+    // ── EditTransactionAsync ─────────────────────────────────────────────────
+
+    [Test]
+    public async Task EditTransactionAsync_OwnedTransaction_UpdatesFieldsAndCommits()
+    {
+        var existing = new Transactions { Id = 5, AccountId = 1, Amount = 10, Name = "Old", TypeTransactionId = 1 };
+        _transactionsRepo.Setup(r => r.GetByIdAsync(5, 1)).ReturnsAsync(existing);
+        _contactRepo.Setup(r => r.GetByNameAsync(1, "John")).ReturnsAsync(new Contact { Id = 2, Name = "John", AccountId = 1 });
+        _subCategoryRepo.Setup(r => r.GetByNameAsync(1, "Lunch", It.IsAny<long?>())).ReturnsAsync(new SubCategory { Id = 3, Name = "Lunch" });
+        _transactionsRepo.Setup(r => r.UpdateAsync(It.IsAny<Transactions>())).ReturnsAsync(true);
+
+        var request = new CreateTrasactionRequest
+        {
+            Amount          = 99,
+            TransactionName = "New name",
+            CategoryName    = "Alimentação",
+            ContactName     = "John",
+            SubCategoryName = "Lunch",
+            Description     = "d",
+            Recurrence      = Recurrence.NONE,
+            TypeTransaction = TypeTransactions.EXPENSE,
+            Paid            = true,
+        };
+
+        await _service.EditTransactionAsync(1, 5, request);
+
+        _transactionsRepo.Verify(r => r.UpdateAsync(It.Is<Transactions>(t =>
+            t.Id == 5 && t.Amount == 99 && t.Name == "New name" && t.Paid)), Times.Once);
+        _unitOfWork.Verify(u => u.Commit(), Times.Once);
+    }
+
+    [Test]
+    public void EditTransactionAsync_NotOwned_ThrowsUnauthorizedAndDoesNotUpdate()
+    {
+        _transactionsRepo.Setup(r => r.GetByIdAsync(5, 1)).ReturnsAsync((Transactions?)null);
+
+        var request = new CreateTrasactionRequest
+        {
+            Amount = 10, TransactionName = "x", CategoryName = "Alimentação", ContactName = "John",
+            SubCategoryName = "Lunch", Recurrence = Recurrence.NONE, TypeTransaction = TypeTransactions.EXPENSE, Paid = false,
+        };
+
+        Assert.ThrowsAsync<UnauthorizedAccessException>(() => _service.EditTransactionAsync(1, 5, request));
+        _transactionsRepo.Verify(r => r.UpdateAsync(It.IsAny<Transactions>()), Times.Never);
     }
 
     // ── DeleteAsync ──────────────────────────────────────────────────────────
@@ -133,11 +208,11 @@ public class TransactionsServiceTest
     [Test]
     public async Task DeleteAsync_CallsRepository_AndCommits()
     {
-        _transactionsRepo.Setup(r => r.DeleteTransactionAsync(1, 7)).Returns(Task.CompletedTask);
+        _transactionsRepo.Setup(r => r.DeleteAsync(7, 1)).ReturnsAsync(true);
 
         await _service.DeleteAsync(1, 7);
 
-        _transactionsRepo.Verify(r => r.DeleteTransactionAsync(1, 7), Times.Once);
+        _transactionsRepo.Verify(r => r.DeleteAsync(7, 1), Times.Once);
         _unitOfWork.Verify(u => u.Commit(), Times.Once);
     }
 

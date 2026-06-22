@@ -65,11 +65,12 @@ public class SubCategoryServiceTest
             new() { Id = 1, Name = "Aluguel" },
             new() { Id = 2, Name = "Luz" },
         };
-        _subCategoryRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(data);
+        _subCategoryRepo.Setup(r => r.GetAllAsync(42)).ReturnsAsync(data);
 
-        var result = (await _service.GetAllAsync()).ToList();
+        var result = (await _service.GetAllAsync(42)).ToList();
 
         Assert.That(result, Has.Count.EqualTo(2));
         Assert.That(result[0].Name, Is.EqualTo("Aluguel"));
+        _subCategoryRepo.Verify(r => r.GetAllAsync(42), Times.Once);
     }
 }

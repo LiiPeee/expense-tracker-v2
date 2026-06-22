@@ -9,9 +9,9 @@ using BudgetTracker.Core.Domain.Repository;
 
 namespace BudgetTracker.Core.Infrastructure.Repository
 {
-    public interface IBudgetLimitRepository : IRepositoryBase<BudgetLimit>
+    public interface IBudgetLimitRepository : IAccountScopedRepository<BudgetLimit>
     {
-        Task<BudgetLimit?> GetByCategoryAndAccountIdAsync(string categoryName, long accountId);
+        Task<BudgetLimit?> GetByCategoryAndAccountIdAsync(long categoryId, long accountId);
         Task<IPagedResult<BudgetLimit?>> GetByAccountIdAsync(long accountId, int pageNumber = 1);
     }
 }

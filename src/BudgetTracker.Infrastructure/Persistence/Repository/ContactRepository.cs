@@ -5,7 +5,7 @@ using System.Data;
 
 namespace BudgetTracker.Infrastructure.Persistence.Repository;
 
-public class ContactRepository : RepositoryBase<Contact>, IContactRepository
+public class ContactRepository : AccountScopedRepositoryBase<Contact>, IContactRepository
 {
     public ContactRepository(DbSession connection) : base(connection)
     {
@@ -13,7 +13,7 @@ public class ContactRepository : RepositoryBase<Contact>, IContactRepository
 
     public async Task<Contact?> GetByNameAsync(long accountId, string name)
     {
-        var query = "SELECT * FROM Contact WHERE Name = @Name AND AccountId = @AccountId ORDER BY Id LIMIT 1";
+        var query = "SELECT * FROM Contact WHERE Name = @Name AND AccountId = @AccountId AND IsActive = true ORDER BY Id LIMIT 1";
 
         if(_db._connection.State == ConnectionState.Open)
             return await _db._connection.QueryFirstOrDefaultAsync<Contact>(query, new { Name = name, AccountId = accountId }, transaction: _db._transaction);
@@ -25,7 +25,7 @@ public class ContactRepository : RepositoryBase<Contact>, IContactRepository
     
     public async Task<List<Contact?>> GetByIdAccount(long accountId)
     {
-        var query = @"SELECT * FROM Contact WHERE AccountId = @AccountId";
+        var query = @"SELECT * FROM Contact WHERE AccountId = @AccountId AND IsActive = true";
 
         if(_db._connection.State == ConnectionState.Open)
             return (await _db._connection.QueryAsync<Contact>(query, new { AccountId = accountId }, transaction: _db._transaction)).ToList();

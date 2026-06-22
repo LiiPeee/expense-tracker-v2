@@ -7,7 +7,7 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace BudgetTracker.Infrastructure.Persistence.Repository
 {
-    public class BudgetLimitRepository : RepositoryBase<BudgetLimit>, IBudgetLimitRepository
+    public class BudgetLimitRepository : AccountScopedRepositoryBase<BudgetLimit>, IBudgetLimitRepository
     {
         public BudgetLimitRepository(DbSession session) : base(session)
         {
@@ -16,9 +16,8 @@ namespace BudgetTracker.Infrastructure.Persistence.Repository
         public async Task<IPagedResult<BudgetLimit?>> GetByAccountIdAsync(long accountId, int pageNumber = 1)
         {
             const int pageSize = 10;
-            const int maxPages = 10;
 
-            pageNumber = Math.Clamp(pageNumber, 1, maxPages);
+            pageNumber = Math.Max(1, pageNumber);
             var offset = (pageNumber - 1) * pageSize;
 
             var query = @"
@@ -62,12 +61,12 @@ namespace BudgetTracker.Infrastructure.Persistence.Repository
             };
         }
 
-        public async Task<BudgetLimit?> GetByCategoryAndAccountIdAsync(string categoryName, long accountId)
+        public async Task<BudgetLimit?> GetByCategoryAndAccountIdAsync(long categoryId, long accountId)
         {
             var query = @"SELECT * FROM BudgetLimit bt 
             INNER JOIN Category ct ON ct.Id = bt.CategoryId
             INNER JOIN Account act ON act.Id = bt.AccountId
-            WHERE ct.Name = @CategoryName AND act.Id = @AccountId";
+            WHERE ct.Id = @CategoryId AND act.Id = @AccountId";
 
             if(_db._connection.State != ConnectionState.Open)
             {
@@ -80,7 +79,7 @@ namespace BudgetTracker.Infrastructure.Persistence.Repository
                 bt.Account = a;
                 return bt;
             },
-            new { AccountId = accountId, CategoryName = categoryName }, transaction: _db._transaction, splitOn: "Id,Id")).FirstOrDefault();
+            new { AccountId = accountId, CategoryId = categoryId }, transaction: _db._transaction, splitOn: "Id,Id")).FirstOrDefault();
 
             return result;
         }

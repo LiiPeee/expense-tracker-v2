@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace BudgetTracker.Infrastructure.Persistence.Repository
 {
-    public class SubCategoryRepository : RepositoryBase<SubCategory>, ISubCategoryRepository
+    public class SubCategoryRepository : AccountScopedRepositoryBase<SubCategory>, ISubCategoryRepository
     {
         public SubCategoryRepository(DbSession connection) : base(connection)
         {

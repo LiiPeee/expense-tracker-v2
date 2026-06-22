@@ -19,7 +19,6 @@ public class TransactionsAppService : ITransactionsAppService
     private readonly IAccountRepository _accountRepository;
     private readonly IContactRepository _contactRepository;
     private readonly ISubCategoryRepository _subCategoryRepository;
-    private readonly IBudgetLimitService _budgetLimitService;
     private readonly IUnitOfWork _unitOfWork;
 
     public TransactionsAppService(ITransactionsRepository transactionRepository,
@@ -27,11 +26,9 @@ public class TransactionsAppService : ITransactionsAppService
         IContactRepository contactRepository,
         ISubCategoryRepository subCategoryRepository,
         IAccountRepository accountRepository,
-        IBudgetLimitService budgetLimitService,
         IUnitOfWork unitOfWork)
     {
         _transactionRepository = transactionRepository;
-        _budgetLimitService = budgetLimitService;
         _categoryRepository = categoryRepository;
         _contactRepository = contactRepository;
         _accountRepository = accountRepository;
@@ -39,30 +36,34 @@ public class TransactionsAppService : ITransactionsAppService
         _unitOfWork = unitOfWork;
     }
 
+    // CREATE TRANSACTION
     public async Task<List<Transactions>> CreateAsync(long accountId, CreateTrasactionRequest transactionRequest)
     {
         try
         {
+            if (transactionRequest.Amount <= 0)
+                throw new ArgumentException("amount must be greater than zero");
+
             _unitOfWork.BeginTransaction();
 
             var contact = await _contactRepository.GetByNameAsync(accountId, transactionRequest.ContactName);
-            var category = await _categoryRepository.GetByNameAsync(EnumHelper.Category(transactionRequest.CategoryName));
+            var category = EnumHelper.Category(transactionRequest.CategoryName);
 
-            if (category is null || contact is null)
+            if (contact is null)
             {
                 throw new KeyNotFoundException("we cannot find contact or category for this transaction");
             }
 
-            var subCategory = await _subCategoryRepository.GetByNameAsync(accountId, transactionRequest.SubCategoryName, category.Id)
+            var subCategory = await _subCategoryRepository.GetByNameAsync(accountId, transactionRequest.SubCategoryName, category)
                 ?? await _subCategoryRepository.AddAsync(new SubCategory 
-                { Name = transactionRequest.SubCategoryName, IsActive = true, CategoryId = category.Id, AccountId = accountId });
+                { Name = transactionRequest.SubCategoryName, IsActive = true, CategoryId = category, AccountId = accountId });
 
             var recurrenceId = (long)transactionRequest.Recurrence;
             var typeTransactionId = (long)transactionRequest.TypeTransaction;
 
             if (transactionRequest.NumberOfInstallment > 0)
             {
-                return await CreateInstallemntsAsync(transactionRequest, category.Id, contact.Id, recurrenceId, typeTransactionId, accountId, subCategory.Id);
+                return await CreateInstallemntsAsync(transactionRequest, category, contact.Id, recurrenceId, typeTransactionId, accountId, subCategory.Id);
             }
 
             Transactions transaction = new()
@@ -70,7 +71,7 @@ public class TransactionsAppService : ITransactionsAppService
                 AccountId = accountId,
                 Amount = transactionRequest.Amount,
                 Name = transactionRequest.TransactionName,
-                CategoryId = category.Id,
+                CategoryId = category,
                 ContactId = contact.Id,
                 SubCategoryId = subCategory.Id,
                 Description = transactionRequest.Description,
@@ -89,8 +90,6 @@ public class TransactionsAppService : ITransactionsAppService
             var savedTransaction = await _transactionRepository.AddAsync(transaction);
             _unitOfWork.Commit();
 
-            await _budgetLimitService.UpdateAsync(transaction.Amount, category.Name, accountId);
-
             return new List<Transactions> { savedTransaction };
         }
         catch (Exception ex)
@@ -100,53 +99,97 @@ public class TransactionsAppService : ITransactionsAppService
         }
     }
 
-    public async Task PaidAsync(long accountId, PaidTransactionRequest paidTransactionRequest)
+    // EDIT TRANSACTION (full update of an owned transaction)
+    public async Task EditTransactionAsync(long accountId, long id, CreateTrasactionRequest transactionRequest)
     {
         try
         {
+            if (transactionRequest.Amount <= 0)
+                throw new ArgumentException("amount must be greater than zero");
+
+            var existing = await _transactionRepository.GetByIdAsync(id, accountId)
+                ?? throw new UnauthorizedAccessException("Transaction not found or access denied");
+
+            var contact = await _contactRepository.GetByNameAsync(accountId, transactionRequest.ContactName)
+                ?? throw new KeyNotFoundException("we cannot find contact for this transaction");
+
+            var category = EnumHelper.Category(transactionRequest.CategoryName);
+
             _unitOfWork.BeginTransaction();
 
-            var transaction = await _transactionRepository.GetByIdAsync(paidTransactionRequest.TransactionId);
+            var subCategory = await _subCategoryRepository.GetByNameAsync(accountId, transactionRequest.SubCategoryName, category)
+                ?? await _subCategoryRepository.AddAsync(new SubCategory
+                { Name = transactionRequest.SubCategoryName, IsActive = true, CategoryId = category, AccountId = accountId });
 
-            if (transaction == null || transaction.AccountId != accountId)
-                throw new UnauthorizedAccessException("Transaction not found or access denied");
+            existing.Amount = transactionRequest.Amount;
+            existing.Name = transactionRequest.TransactionName;
+            existing.Description = transactionRequest.Description;
+            existing.CategoryId = category;
+            existing.ContactId = contact.Id;
+            existing.SubCategoryId = subCategory.Id;
+            existing.TypeTransactionId = (long)transactionRequest.TypeTransaction;
+            existing.RecurrenceId = (long)transactionRequest.Recurrence;
+            existing.Paid = transactionRequest.Paid;
+            existing.NumberOfInstallment = transactionRequest.NumberOfInstallment;
+            existing.UpdatedAt = DateTime.UtcNow;
 
-            if (transaction is not null)
-            {
-                if (paidTransactionRequest.Paid == true && transaction.Paid != true)
-                {
-                    var delta = transaction.TypeTransactionId == (long)TypeTransactions.EXPENSE
-                        ? -transaction.Amount
-                        : transaction.Amount;
+            await _transactionRepository.UpdateAsync(existing);
 
-                    transaction.Paid = true;
-
-                    var updatedTransaction = await _transactionRepository.UpdateAsync(transaction);
-
-                    if (!updatedTransaction)
-                    {
-                        throw new ArgumentException("something wrong happen");
-                    }
-
-                    await _accountRepository.UpdateBalanceAtomicAsync(transaction.AccountId, delta);
-                    _unitOfWork.Commit();
-                }
-            }
+            _unitOfWork.Commit();
         }
-        catch (Exception ex)
+        catch
         {
             _unitOfWork.Rollback();
             throw;
         }
     }
 
+    // UPDATE TRANSACTION TO PAIDED
+    public async Task PaidAsync(long accountId, PaidTransactionRequest paidTransactionRequest)
+    {
+        try
+        {
+            var transaction = await _transactionRepository.GetByIdAsync(paidTransactionRequest.TransactionId, accountId);
+
+            if (transaction is null)
+                throw new UnauthorizedAccessException("Transaction not found or access denied");
+
+            // Nothing to do (not a pay request, or already paid) — don't open a transaction.
+            if (paidTransactionRequest.Paid != true || transaction.Paid == true)
+                return;
+
+            _unitOfWork.BeginTransaction();
+
+            // Atomically flip false -> true. Only the caller that wins the flip applies the
+            // balance delta, so concurrent requests cannot double-debit the account.
+            var flipped = await _transactionRepository.MarkAsPaidAsync(transaction.Id, accountId);
+
+            if (flipped)
+            {
+                var delta = transaction.TypeTransactionId == (long)TypeTransactions.EXPENSE
+                    ? -transaction.Amount
+                    : transaction.Amount;
+
+                await _accountRepository.UpdateBalanceAtomicAsync(accountId, delta);
+            }
+
+            _unitOfWork.Commit();
+        }
+        catch
+        {
+            _unitOfWork.Rollback();
+            throw;
+        }
+    }
+
+    // DELETE TRANSACTION
     public async Task DeleteAsync(long accountId, long id)
     {
         try
         {
             _unitOfWork.BeginTransaction();
 
-            await _transactionRepository.DeleteTransactionAsync(accountId, id);
+            await _transactionRepository.DeleteAsync(id, accountId);
 
             _unitOfWork.Commit();
         }
@@ -157,6 +200,7 @@ public class TransactionsAppService : ITransactionsAppService
         }
     }
 
+    // GET TRANSACTION WITH CONTACT
     public async Task<List<FilterByMonthAndYearOutPut>> FilterExpenseWithContactAsync(long accountId, long year, long month)
     {
         try
@@ -191,6 +235,7 @@ public class TransactionsAppService : ITransactionsAppService
         }
     }
 
+    // GET TRANSACTION EXPENSE BY MONTH AND YEAR
     public async Task<decimal> FilterExpenseMonthAndYearAsync(long accountId, long year, long month)
     {
         try
@@ -212,6 +257,7 @@ public class TransactionsAppService : ITransactionsAppService
         }
     }
 
+    // GET TRANSACTION INCOME BY MONTH AND YEAR
     public async Task<decimal> FilterIncomeMonthAndYearAsync(long accountId, long year, long month)
     {
         try
@@ -233,13 +279,14 @@ public class TransactionsAppService : ITransactionsAppService
         }
     }
 
+    // GET TRANSANCTION BY TYPE
     public async Task<IPagedResult<FilterByMonthAndYearOutPut>> FilterTransactionByTypeAsync(long accountId, TypeTransaction type, long month, long year)
     {
         try
         {
             var transactions = await _transactionRepository.FilterTransactionsByTypeAsync(accountId, type.ToString(), month, year);
 
-            if (transactions.Items.Count == 0) throw new KeyNotFoundException("we cannot find transactions");
+            if (!transactions.Items.Any()) throw new KeyNotFoundException("we cannot find transactions");
 
             var filter = new List<FilterByMonthAndYearOutPut>();
 
@@ -284,13 +331,14 @@ public class TransactionsAppService : ITransactionsAppService
         }
     }
 
+    // GET TRANSACTION BY CATEGORY, TYPE, MONTH AND YEAR
     public async Task<IPagedResult<FilterByMonthAndYearOutPut>> FilterTransactionsByCategoryAsync(long accountId, Categories categoryName, TypeTransaction type, long month, long year)
     {
         try
         {
             var transactions = await _transactionRepository.FilterTransactionsByCategoryAsync(accountId, categoryName.ToString(), type.ToString(), month, year);
 
-            if (transactions.Items.Count == 0) throw new KeyNotFoundException("we cannot find transactions");
+            if (!transactions.Items.Any()) throw new KeyNotFoundException("we cannot find transactions");
 
             var filter = new List<FilterByMonthAndYearOutPut>();
 
@@ -334,13 +382,14 @@ public class TransactionsAppService : ITransactionsAppService
         }
     }
 
-    public async Task<IPagedResult<FilterByMonthAndYearOutPut>> FilterByMonthAndYearsync(long accountId, long month, long year, int pageNumber = 1)
+    // GET TRANSACTION BY MONTH AND YEAR
+    public async Task<IPagedResult<FilterByMonthAndYearOutPut>> FilterByMonthAndYearAsync(long accountId, long month, long year, int pageNumber = 1)
     {
         try
         {
             var transactions = await _transactionRepository.FilterByMonthAndYearAsync(accountId, month, year, pageNumber);
 
-            if (transactions.Items.Count == 0) throw new KeyNotFoundException("we cannot find transactions");
+            if (!transactions.Items.Any()) throw new KeyNotFoundException("we cannot find transactions");
 
             var filter = new List<FilterByMonthAndYearOutPut>();
 
@@ -384,12 +433,13 @@ public class TransactionsAppService : ITransactionsAppService
         }
     }
 
-    public async Task<IPagedResult<FilterByMonthAndYearOutPut>> FilterByContactAndMonth(long accountId, long year, long month, TypeTransaction type, string contactName, int pageNumber = 1)
+    //GET TRANSACTION BY CONTACT AND TYPE
+    public async Task<IPagedResult<FilterByMonthAndYearOutPut>> FilterByContactAndMonth(long accountId, long year, long month, TypeTransaction type, long contactId, int pageNumber = 1)
     {
 
-        var transactions = await _transactionRepository.FilterByMonthAndContactAsync(accountId, year, month, type.ToString(), contactName, pageNumber);
+        var transactions = await _transactionRepository.FilterByMonthAndContactAsync(accountId, year, month, type.ToString(), contactId, pageNumber);
 
-        if (transactions.Items.Count == 0) throw new KeyNotFoundException("we cannot find transactions");
+        if (!transactions.Items.Any()) throw new KeyNotFoundException("we cannot find transactions");
 
         var filter = new List<FilterByMonthAndYearOutPut>();
 
@@ -421,6 +471,7 @@ public class TransactionsAppService : ITransactionsAppService
         };
     }
 
+    // GET ECONOMY
     public async Task<decimal> GetEconomyAsync(long accountId, long year, long month)
     {
         try
@@ -451,6 +502,7 @@ public class TransactionsAppService : ITransactionsAppService
         }
     }
 
+    // CREATE TRANSACTION INSTALLEMNTS
     private async Task<List<Transactions>> CreateInstallemntsAsync(CreateTrasactionRequest request, long category, long contactId, long recurrenceId, long typeTransactionId, long accountId, long? subCategoryId)
     {
         try
