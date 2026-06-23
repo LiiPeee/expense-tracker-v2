@@ -1,12 +1,13 @@
 using Dapper;
 using BudgetTracker.Core.Domain.Dtos.Output;
 using BudgetTracker.Core.Domain.Entities;
+using BudgetTracker.Core.Domain.Enum;
 using BudgetTracker.Core.Domain.Repository;
 using System.Data;
 
 namespace BudgetTracker.Infrastructure.Persistence.Repository;
 
-public class TransactionsRepository : RepositoryBase<Transactions>, ITransactionsRepository
+public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>, ITransactionsRepository
 {
     public TransactionsRepository(DbSession connection) : base(connection)
     {
@@ -16,9 +17,8 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
     public async Task<IPagedResult<Transactions>> FilterTransactionsByCategoryAsync(long accountId, string categoryName, string type, long month, long year, int pageNumber = 1)
     {
         const int pageSize = 10;
-        const int maxPages = 10;
 
-        pageNumber = Math.Clamp(pageNumber, 1, maxPages);
+        pageNumber = Math.Max(1, pageNumber);
         var offset = (pageNumber - 1) * pageSize;
 
         var query = @"
@@ -75,9 +75,8 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
     public async Task<IPagedResult<Transactions>> FilterTransactionsByTypeAsync(long accountId, string type, long month, long year, int pageNumber = 1)
     {
         const int pageSize = 10;
-        const int maxPages = 10;
 
-        pageNumber = Math.Clamp(pageNumber, 1, maxPages);
+        pageNumber = Math.Max(1, pageNumber);
         var offset = (pageNumber - 1) * pageSize;
 
         var query = @"
@@ -134,9 +133,8 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
     public async Task<IPagedResult<Transactions>> FilterByMonthAndYearAsync(long accountId, long month, long year, int pageNumber = 1)
     {
         const int pageSize = 10;
-        const int maxPages = 10;
 
-        pageNumber = Math.Clamp(pageNumber, 1, maxPages);
+        pageNumber = Math.Max(1, pageNumber);
         var offset = (pageNumber - 1) * pageSize;
 
         var query = @"
@@ -188,13 +186,12 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         };
     }
 
-    public async Task<IPagedResult<Transactions>> FilterByMonthAndContactAsync(long accountId, long year, long month, string type, string contactName, int pageNumber = 1)
+    public async Task<IPagedResult<Transactions>> FilterByMonthAndContactAsync(long accountId, long year, long month, string type, long contactId, int pageNumber = 1)
     {
 
         const int pageSize = 10;
-        const int maxPages = 10;
 
-        pageNumber = Math.Clamp(pageNumber, 1, maxPages);
+        pageNumber = Math.Max(1, pageNumber);
         var offset = (pageNumber - 1) * pageSize;
 
         var query = @"
@@ -204,7 +201,7 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         INNER JOIN Category cat ON t.CategoryId = cat.Id
         INNER JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
         WHERE t.AccountId = @AccountId AND tp.Name = @Type 
-            AND ct.Name = @ContactName
+            AND ct.Id = @ContactId
             AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year)
             OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year))
         ORDER BY t.Id DESC
@@ -226,7 +223,7 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
 
         using var multi = await _db._connection.QueryMultipleAsync(
             query,
-            new { AccountId = accountId, Month = month, Year = year, OffSet = offset, PageSize = pageSize, ContactName = contactName,Type = type },
+            new { AccountId = accountId, Month = month, Year = year, OffSet = offset, PageSize = pageSize, ContactId = contactId,Type = type },
             _db._transaction);
 
         var items = multi.Read<Transactions, Contact, Category, Transactions>(
@@ -255,11 +252,11 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         WHERE t.AccountId = @AccountId 
             AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year) 
             OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year))
-            AND t.TypeTransactionId = 1";
+            AND t.TypeTransactionId = @TypeId";
 
         if (_db._connection.State == ConnectionState.Open)
         {
-            var result = await _db._connection.QueryAsync<Transactions>(query, new { AccountId = accountId, Month = month, Year = year }, _db._transaction);
+            var result = await _db._connection.QueryAsync<Transactions>(query, new { AccountId = accountId, Month = month, Year = year, TypeId = (long)TypeTransactions.EXPENSE }, _db._transaction);
             return result.ToList();
         }
         else
@@ -274,11 +271,11 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         WHERE t.AccountId = @AccountId 
             AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year) 
             OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year))
-            AND t.TypeTransactionId = 2";
+            AND t.TypeTransactionId = @TypeId";
 
         if (_db._connection.State == ConnectionState.Open)
         {
-            var result = await _db._connection.QueryAsync<Transactions>(query, new { AccountId = accountId, Month = month, Year = year }, _db._transaction);
+            var result = await _db._connection.QueryAsync<Transactions>(query, new { AccountId = accountId, Month = month, Year = year, TypeId = (long)TypeTransactions.INCOME }, _db._transaction);
             return result.ToList();
         }
         else
@@ -313,19 +310,41 @@ public class TransactionsRepository : RepositoryBase<Transactions>, ITransaction
         }
     }
 
-    public async Task DeleteTransactionAsync(long accountId, long id)
+    public async Task<bool> MarkAsPaidAsync(long id, long accountId)
     {
-        var query = @"DELETE FROM Transactions WHERE Id = @Id AND AccountId = @AccountId";
+        const string query = @"UPDATE Transactions SET Paid = true WHERE Id = @Id AND AccountId = @AccountId AND Paid = false";
 
-        if (_db._connection.State == ConnectionState.Open)
-        {
-            await _db._connection.ExecuteAsync(query, new { Id = id, AccountId = accountId }, _db._transaction);
-        }
-        else
-        {
+        if (_db._connection.State != ConnectionState.Open)
             throw new Exception("connection lost");
-        }
+
+        var rows = await _db._connection.ExecuteAsync(query, new { Id = id, AccountId = accountId }, _db._transaction);
+        return rows > 0;
     }
+
+    public async Task<decimal> GetExpenseTotalByCategoryAsync(long accountId, long categoryId, int month, int year)
+    {
+        const string query = @"
+        SELECT COALESCE(SUM(t.Amount), 0)
+        FROM Transactions t
+        WHERE t.AccountId = @AccountId
+            AND t.CategoryId = @CategoryId
+            AND t.TypeTransactionId = @ExpenseType
+            AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year)
+                OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year))";
+
+        if (_db._connection.State != ConnectionState.Open)
+            throw new Exception("connection lost");
+
+        return await _db._connection.ExecuteScalarAsync<decimal>(query, new
+        {
+            AccountId = accountId,
+            CategoryId = categoryId,
+            Month = month,
+            Year = year,
+            ExpenseType = (long)TypeTransactions.EXPENSE
+        }, _db._transaction);
+    }
+
 }
 
 

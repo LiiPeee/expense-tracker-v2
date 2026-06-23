@@ -8,13 +8,18 @@ namespace BudgetTracker.Application.Service;
 
 public class AddressAppService(IContactRepository contactRepository, IAddressRepository addressRepository, IUnitOfWork unitOfWork) : IAddressAppService
 {
+    private readonly IContactRepository _contactRepository = contactRepository;
     private readonly IAddressRepository _addressRepository = addressRepository;
     public readonly IUnitOfWork _unitOfWork = unitOfWork;
 
-    public async Task CreateAsync(AddressRequest addressRequest)
+    public async Task CreateAsync(long accountId, AddressRequest addressRequest)
     {
         try
         {
+            // The address is only allowed under a contact owned by the calling account.
+            var contact = await _contactRepository.GetByNameAsync(accountId, addressRequest.ContactName)
+                ?? throw new UnauthorizedAccessException("Contact not found or access denied");
+
             Address address = new Address()
             {
                 CreatedAt = DateTime.UtcNow,
@@ -24,6 +29,7 @@ public class AddressAppService(IContactRepository contactRepository, IAddressRep
                 State = addressRequest.State,
                 Street = addressRequest.Street,
                 ZipCode = addressRequest.ZipCode,
+                ContactId = contact.Id,
             };
 
             _unitOfWork.BeginTransaction();

@@ -28,7 +28,9 @@ namespace BudgetTracker.WebApi.Controller
         [HttpGet("[action]")]
         public async Task<IEnumerable<SubCategory>> GetAllAsync()
         {
-            return await _subCategoryAppService.GetAllAsync();
+            var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            return await _subCategoryAppService.GetAllAsync(accountId);
         }
     }
 }

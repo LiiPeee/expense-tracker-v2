@@ -1,6 +1,6 @@
 ﻿namespace BudgetTracker.Core.Domain.Entities
 {
-    public class BudgetLimit : BaseEntity
+    public class BudgetLimit : BaseEntity, IAccountOwned
     {
         public bool IsLimit { get; set; }
 

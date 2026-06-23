@@ -250,6 +250,45 @@ CREATE TABLE IF NOT EXISTS ResetPassword (
         FOREIGN KEY (AccountId) REFERENCES Account (Id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS BudgetLimit (
+    Id          BIGSERIAL      PRIMARY KEY,
+    IsLimit     BOOLEAN        NOT NULL DEFAULT FALSE,
+    Month       INTEGER        NOT NULL,
+    Year        INTEGER        NOT NULL,
+    CategoryId  BIGINT         NOT NULL,
+    AccountId   BIGINT         NOT NULL,
+    Percentage  NUMERIC(18, 2) NOT NULL DEFAULT 0,
+    LimitAmount NUMERIC(18, 2) NOT NULL,
+    CreatedAt   TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
+    UpdatedAt   TIMESTAMPTZ,
+
+    CONSTRAINT chk_budgetlimit_month
+        CHECK (Month BETWEEN 1 AND 12),
+    CONSTRAINT chk_budgetlimit_limitamount
+        CHECK (LimitAmount > 0),
+    CONSTRAINT fk_budgetlimit_account
+        FOREIGN KEY (AccountId)  REFERENCES Account  (Id) ON DELETE CASCADE,
+    CONSTRAINT fk_budgetlimit_category
+        FOREIGN KEY (CategoryId) REFERENCES Category (Id)
+);
+
+CREATE TABLE IF NOT EXISTS Stock (
+    Id          BIGSERIAL      PRIMARY KEY,
+    AccountId   BIGINT         NOT NULL,
+    Ticker      VARCHAR(20)    NOT NULL,
+    Title       VARCHAR(100)   NOT NULL,
+    Description VARCHAR(255),
+    PriceBuyed  NUMERIC(18, 2) NOT NULL,
+    PriceMarket NUMERIC(18, 2) NOT NULL DEFAULT 0,
+    Avarage     NUMERIC(18, 2) NOT NULL DEFAULT 0,
+    Quantity    BIGINT         NOT NULL DEFAULT 0,
+    CreatedAt   TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
+    UpdatedAt   TIMESTAMPTZ,
+
+    CONSTRAINT fk_stock_account
+        FOREIGN KEY (AccountId) REFERENCES Account (Id) ON DELETE CASCADE
+);
+
 -- ============================================================
 -- INDEXES
 -- ============================================================
@@ -277,6 +316,11 @@ CREATE INDEX IF NOT EXISTS idx_transactions_account_category      ON Transaction
 
 CREATE INDEX IF NOT EXISTS idx_resetpassword_accountid            ON ResetPassword (AccountId);
 CREATE INDEX IF NOT EXISTS idx_resetpassword_hashedtoken          ON ResetPassword (HashedToken);
+
+CREATE INDEX IF NOT EXISTS idx_budgetlimit_accountid              ON BudgetLimit  (AccountId);
+CREATE INDEX IF NOT EXISTS idx_budgetlimit_account_category       ON BudgetLimit  (AccountId, CategoryId);
+
+CREATE INDEX IF NOT EXISTS idx_stock_accountid                    ON Stock        (AccountId);
 
 -- ============================================================
 -- SEED DATA

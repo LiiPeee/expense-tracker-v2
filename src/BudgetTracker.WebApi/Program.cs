@@ -49,15 +49,19 @@ builder.Services.AddAuthentication(options =>
             ClockSkew = TimeSpan.Zero
         };
     })
-    .AddCookie()
-    .AddGoogle(options =>
-    {
-        options.ClientId =
-            builder.Configuration["Google:ClientId"];
+    .AddCookie();
 
-        options.ClientSecret =
-            builder.Configuration["Google:ClientSecret"];
-    });
+var googleClientId = builder.Configuration["Google:ClientId"];
+var googleClientSecret = builder.Configuration["Google:ClientSecret"];
+if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientSecret))
+{
+    builder.Services.AddAuthentication()
+        .AddGoogle(options =>
+        {
+            options.ClientId = googleClientId;
+            options.ClientSecret = googleClientSecret;
+        });
+}
 
 
 builder.Services.AddControllers()

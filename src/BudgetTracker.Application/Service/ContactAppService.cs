@@ -87,9 +87,9 @@ public class ContactAppService : IContactAppService
             if (!long.TryParse(request.ContactId, out var id))
                 throw new ArgumentException("ContactId inválido");
 
-            var existingContact = await _contactRepository.GetByIdAsync(id);
+            var existingContact = await _contactRepository.GetByIdAsync(id, accountId);
 
-            if (existingContact == null || existingContact.AccountId != accountId)
+            if (existingContact is null)
                 throw new UnauthorizedAccessException("Contact not found or access denied");
 
             Contact contact = new Contact()
@@ -122,12 +122,15 @@ public class ContactAppService : IContactAppService
             if (!long.TryParse(contactId, out var id))
                 throw new ArgumentException("ContactId inválido");
 
-            var contact = await _contactRepository.GetByIdAsync(id);
-            if (contact == null || contact.AccountId != accountId)
+            var contact = await _contactRepository.GetByIdAsync(id, accountId);
+            if (contact is null)
                 throw new UnauthorizedAccessException("Contact not found or access denied");
 
+            // Soft delete: keep the row (transactions reference it) but hide it from listings.
+            contact.IsActive = false;
+
             _unitOfWork.BeginTransaction();
-            await _contactRepository.DeleteAsync(id);
+            await _contactRepository.UpdateAsync(contact);
             _unitOfWork.Commit();
         }
         catch

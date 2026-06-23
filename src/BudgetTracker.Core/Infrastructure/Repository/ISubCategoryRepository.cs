@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace BudgetTracker.Core.Infrastructure.Repository
 {
-    public interface ISubCategoryRepository : IRepositoryBase<SubCategory>
+    public interface ISubCategoryRepository : IAccountScopedRepository<SubCategory>
     {
         Task<SubCategory?> GetByNameAsync(long accountId, string name, long? categoryId);
     }

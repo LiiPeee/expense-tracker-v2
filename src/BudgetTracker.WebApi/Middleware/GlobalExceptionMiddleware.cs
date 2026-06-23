@@ -27,21 +27,26 @@ public class GlobalExceptionMiddleware
     private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         context.Response.ContentType = "application/json";
-        var statusCode = exception switch
+
+        // Map known domain exceptions to their status + safe message. Unmapped exceptions
+        // become a generic 500 with NO internal detail (raw .Message can leak DB/infra info).
+        var (statusCode, safeMessage) = exception switch
         {
-            ArgumentException => StatusCodes.Status400BadRequest,
-            UnauthorizedAccessException => StatusCodes.Status401Unauthorized,
-            KeyNotFoundException => StatusCodes.Status404NotFound,
-            InvalidOperationException => StatusCodes.Status409Conflict,
-            _ => StatusCodes.Status500InternalServerError
+            ArgumentException => (StatusCodes.Status400BadRequest, exception.Message),
+            UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, exception.Message),
+            KeyNotFoundException => (StatusCodes.Status404NotFound, exception.Message),
+            InvalidOperationException => (StatusCodes.Status409Conflict, exception.Message),
+            _ => (StatusCodes.Status500InternalServerError, "An error occurred while processing your request")
         };
         context.Response.StatusCode = statusCode;
+
+        var isDevelopment = context.RequestServices.GetService<IWebHostEnvironment>()?.IsDevelopment() == true;
         var response = new
         {
             error = new
             {
-                message = exception.Message,
-                details = context.RequestServices.GetService<IWebHostEnvironment>()?.IsDevelopment() == true
+                message = isDevelopment ? exception.Message : safeMessage,
+                details = isDevelopment
                     ? exception.StackTrace
                     : "An error occurred while processing your request"
             }

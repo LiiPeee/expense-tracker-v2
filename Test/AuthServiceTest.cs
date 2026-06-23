@@ -71,6 +71,10 @@ public class AuthServiceTest
         Password  = password,
     };
 
+    // Reset codes are stored hashed at rest; the service compares SHA-256 hashes.
+    private static string Sha256Hex(string code) =>
+        Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(code)));
+
     private Account BuildActiveAccount(long id = 1) => new()
     {
         Id             = id,
@@ -263,6 +267,41 @@ public class AuthServiceTest
         _unitOfWork.Verify(u => u.Rollback(), Times.Once);
     }
 
+    [Test]
+    public void VerifyTokenAsync_InvalidToken_PersistsIncrementedAttempt()
+    {
+        var account = new Account { Id = 1, VerifyAttempts = 0, EmailVerificationToken = "correct-token" };
+        _passwordHelper.Setup(p => p.DecryptUrl(It.IsAny<string>())).Returns("1");
+        _accountRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(account);
+        _accountRepo.Setup(r => r.UpdateAsync(It.IsAny<Account>())).ReturnsAsync(true);
+
+        Assert.ThrowsAsync<ArgumentException>(() =>
+            _service.VerifyTokenSignUpAsync(new VerifyTokenRequestDto { Id = "id", Token = "wrong-token" }));
+
+        // The increment must be saved, otherwise the >5 lockout never triggers.
+        _accountRepo.Verify(r => r.UpdateAsync(It.Is<Account>(a => a.VerifyAttempts == 1)), Times.Once);
+        _unitOfWork.Verify(u => u.Commit(), Times.Once);
+    }
+
+    [Test]
+    public async Task VerifyTokenAsync_ValidToken_ResetsVerifyAttempts()
+    {
+        var account = new Account
+        {
+            Id = 1,
+            VerifyAttempts = 3,
+            EmailVerificationToken = "valid-token",
+            EmailVerificationTokenExpiry = DateTime.UtcNow.AddHours(1),
+        };
+        _passwordHelper.Setup(p => p.DecryptUrl(It.IsAny<string>())).Returns("1");
+        _accountRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(account);
+        _accountRepo.Setup(r => r.UpdateAsync(It.IsAny<Account>())).ReturnsAsync(true);
+
+        await _service.VerifyTokenSignUpAsync(new VerifyTokenRequestDto { Id = "id", Token = "valid-token" });
+
+        Assert.That(account.VerifyAttempts, Is.EqualTo(0));
+    }
+
     // ── VerifyEmailAsync ─────────────────────────────────────────────────────
 
     [Test]
@@ -296,8 +335,7 @@ public class AuthServiceTest
     {
         var account = new Account { Id = 1, Email = "user@test.com" };
         _accountRepo.Setup(r => r.GetByEmailAsync(It.IsAny<string>())).ReturnsAsync(account);
-        _passwordHelper.Setup(p => p.GenerateRefreshToken()).Returns("token");
-        _passwordHelper.Setup(p => p.Encrypt(It.IsAny<string>())).Returns("encrypted");
+        _passwordHelper.Setup(p => p.GenerateVerificationCode()).Returns("reset-code");
         _resetPasswordRepo.Setup(r => r.AddAsync(It.IsAny<ResetPassword>())).ThrowsAsync(new Exception("db error"));
 
         Assert.ThrowsAsync<Exception>(() => _service.VerifyEmailAsync("user@test.com"));
@@ -308,20 +346,26 @@ public class AuthServiceTest
     // ── ResetPasswordAsync ───────────────────────────────────────────────────
 
     [Test]
-    public async Task ResetPasswordAsync_ValidEmail_UpdatesPasswordAndCommits()
+    public async Task ResetPasswordAsync_ValidCode_UpdatesPasswordInvalidatesCodeAndCommits()
     {
-        var account = new Account { Id = 1, Email = "user@test.com" };
+        var account       = new Account { Id = 1, Email = "user@test.com" };
+        var resetPassword = new ResetPassword { Id = 1, AccountId = 1, HashedToken = Sha256Hex("123456"), ExpireAt = DateTime.UtcNow.AddMinutes(30) };
 
         _accountRepo.Setup(r => r.GetByEmailAsync("user@test.com")).ReturnsAsync(account);
+        _resetPasswordRepo.Setup(r => r.GetByAccountIdAsync(1)).ReturnsAsync(resetPassword);
         _accountRepo.Setup(r => r.UpdateAsync(It.IsAny<Account>())).ReturnsAsync(true);
+        _resetPasswordRepo.Setup(r => r.UpdateAsync(It.IsAny<ResetPassword>())).ReturnsAsync(true);
 
         var result = await _service.ResetPasswordAsync(new ResetPasswordRequestDto
         {
             email       = "user@test.com",
-            newPassword = "NewValidPass1!"
+            newPassword = "NewValidPass1!",
+            token       = "123456"
         });
 
         Assert.That(result, Is.EqualTo("Password Reseted"));
+        Assert.That(resetPassword.HashedToken, Is.Null, "reset code must be invalidated to prevent replay");
+        _resetPasswordRepo.Verify(r => r.UpdateAsync(It.IsAny<ResetPassword>()), Times.Once);
         _unitOfWork.Verify(u => u.BeginTransaction(), Times.Once);
         _unitOfWork.Verify(u => u.Commit(), Times.Once);
     }
@@ -332,24 +376,54 @@ public class AuthServiceTest
         _accountRepo.Setup(r => r.GetByEmailAsync(It.IsAny<string>())).ReturnsAsync((Account?)null);
 
         Assert.ThrowsAsync<KeyNotFoundException>(() =>
-            _service.ResetPasswordAsync(new ResetPasswordRequestDto { email = "x@test.com", newPassword = "y" }));
+            _service.ResetPasswordAsync(new ResetPasswordRequestDto { email = "x@test.com", newPassword = "y", token = "123456" }));
 
         _unitOfWork.Verify(u => u.Rollback(), Times.Once);
     }
 
     [Test]
-    [Ignore("ResetPasswordAsync foi refatorado para fluxo por e-mail e ainda NAO revalida token/expiracao antes de trocar a senha (furo de seguranca em aberto). Reativar quando a validacao for reimplementada.")]
-    public void ResetPasswordAsync_ExpiredResetToken_ThrowsAndRollsBack()
+    public void ResetPasswordAsync_NoResetCodeRequested_ThrowsUnauthorizedAndDoesNotChangePassword()
+    {
+        var account = new Account { Id = 1, Email = "user@test.com" };
+        _accountRepo.Setup(r => r.GetByEmailAsync("user@test.com")).ReturnsAsync(account);
+        _resetPasswordRepo.Setup(r => r.GetByAccountIdAsync(1)).ReturnsAsync((ResetPassword?)null);
+
+        Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            _service.ResetPasswordAsync(new ResetPasswordRequestDto { email = "user@test.com", newPassword = "y", token = "123456" }));
+
+        _accountRepo.Verify(r => r.UpdateAsync(It.IsAny<Account>()), Times.Never);
+        _unitOfWork.Verify(u => u.Rollback(), Times.Once);
+    }
+
+    [Test]
+    public void ResetPasswordAsync_WrongCode_ThrowsUnauthorizedAndDoesNotChangePassword()
     {
         var account       = new Account { Id = 1, Email = "user@test.com" };
-        var resetPassword = new ResetPassword { ExpireAt = DateTime.UtcNow.AddHours(-1) };
+        var resetPassword = new ResetPassword { HashedToken = Sha256Hex("123456"), ExpireAt = DateTime.UtcNow.AddMinutes(30) };
 
         _accountRepo.Setup(r => r.GetByEmailAsync("user@test.com")).ReturnsAsync(account);
         _resetPasswordRepo.Setup(r => r.GetByAccountIdAsync(1)).ReturnsAsync(resetPassword);
 
-        Assert.ThrowsAsync<ArgumentException>(() =>
-            _service.ResetPasswordAsync(new ResetPasswordRequestDto { email = "user@test.com", newPassword = "y" }));
+        Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            _service.ResetPasswordAsync(new ResetPasswordRequestDto { email = "user@test.com", newPassword = "y", token = "000000" }));
 
+        _accountRepo.Verify(r => r.UpdateAsync(It.IsAny<Account>()), Times.Never);
+        _unitOfWork.Verify(u => u.Rollback(), Times.Once);
+    }
+
+    [Test]
+    public void ResetPasswordAsync_ExpiredResetCode_ThrowsUnauthorizedAndRollsBack()
+    {
+        var account       = new Account { Id = 1, Email = "user@test.com" };
+        var resetPassword = new ResetPassword { HashedToken = Sha256Hex("123456"), ExpireAt = DateTime.UtcNow.AddHours(-1) };
+
+        _accountRepo.Setup(r => r.GetByEmailAsync("user@test.com")).ReturnsAsync(account);
+        _resetPasswordRepo.Setup(r => r.GetByAccountIdAsync(1)).ReturnsAsync(resetPassword);
+
+        Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            _service.ResetPasswordAsync(new ResetPasswordRequestDto { email = "user@test.com", newPassword = "y", token = "123456" }));
+
+        _accountRepo.Verify(r => r.UpdateAsync(It.IsAny<Account>()), Times.Never);
         _unitOfWork.Verify(u => u.Rollback(), Times.Once);
     }
 
@@ -376,10 +450,11 @@ public class AuthServiceTest
     {
         _accountRepo.Setup(r => r.GetByEmailAsync(It.IsAny<string>())).ReturnsAsync((Account?)null);
 
-        var ex = Assert.ThrowsAsync<Exception>(() =>
+        var ex = Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             _service.SignInAsync(new LoginRequestDto { Email = "x@test.com", Password = "any" }));
 
-        Assert.That(ex!.Message, Does.Contain("email is invalid"));
+        // Generic message — must not reveal whether the email exists.
+        Assert.That(ex!.Message, Does.Contain("invalid credentials"));
     }
 
     [Test]
@@ -389,7 +464,7 @@ public class AuthServiceTest
         account.VerifyAttempts = 6;
         _accountRepo.Setup(r => r.GetByEmailAsync(account.Email)).ReturnsAsync(account);
 
-        var ex = Assert.ThrowsAsync<Exception>(() =>
+        var ex = Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             _service.SignInAsync(new LoginRequestDto { Email = account.Email, Password = ValidPassword }));
 
         Assert.That(ex!.Message, Does.Contain("exceeds attempts"));
@@ -401,10 +476,11 @@ public class AuthServiceTest
         var account = BuildActiveAccount();
         _accountRepo.Setup(r => r.GetByEmailAsync(account.Email)).ReturnsAsync(account);
 
-        var ex = Assert.ThrowsAsync<Exception>(() =>
+        var ex = Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             _service.SignInAsync(new LoginRequestDto { Email = account.Email, Password = "WrongPass1!" }));
 
-        Assert.That(ex!.Message, Does.Contain("password is invalid"));
+        // Generic message — must be identical to the "email not found" case.
+        Assert.That(ex!.Message, Does.Contain("invalid credentials"));
     }
 
     [Test]
@@ -414,7 +490,7 @@ public class AuthServiceTest
         account.IsActive = false;
         _accountRepo.Setup(r => r.GetByEmailAsync(account.Email)).ReturnsAsync(account);
 
-        var ex = Assert.ThrowsAsync<Exception>(() =>
+        var ex = Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             _service.SignInAsync(new LoginRequestDto { Email = account.Email, Password = ValidPassword }));
 
         Assert.That(ex!.Message, Does.Contain("not active"));
@@ -427,7 +503,7 @@ public class AuthServiceTest
         account.EmailVerified = false;
         _accountRepo.Setup(r => r.GetByEmailAsync(account.Email)).ReturnsAsync(account);
 
-        var ex = Assert.ThrowsAsync<Exception>(() =>
+        var ex = Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             _service.SignInAsync(new LoginRequestDto { Email = account.Email, Password = ValidPassword }));
 
         Assert.That(ex!.Message, Does.Contain("not verified"));

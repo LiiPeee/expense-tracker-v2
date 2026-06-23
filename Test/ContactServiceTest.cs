@@ -134,11 +134,12 @@ public class ContactServiceTest
     public async Task EditContactAsync_ValidContact_UpdatesAndCommits()
     {
         var existing = new Contact { Id = 5, AccountId = 1, Name = "Old" };
-        _contactRepo.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(existing);
+        _contactRepo.Setup(r => r.GetByIdAsync(5, 1)).ReturnsAsync(existing);
         _contactRepo.Setup(r => r.UpdateAsync(It.IsAny<Contact>())).ReturnsAsync(true);
 
         await _service.EditContactAsync(1, BuildRequest(contactId: "5"));
 
+        _contactRepo.Verify(r => r.GetByIdAsync(5, 1), Times.Once);
         _contactRepo.Verify(r => r.UpdateAsync(It.Is<Contact>(c => c.Name == "Alice")), Times.Once);
         _unitOfWork.Verify(u => u.BeginTransaction(), Times.Once);
         _unitOfWork.Verify(u => u.Commit(), Times.Once);
@@ -148,7 +149,7 @@ public class ContactServiceTest
     public async Task EditContactAsync_RepositoryThrows_RollsBackAndRethrows()
     {
         var existing = new Contact { Id = 5, AccountId = 1 };
-        _contactRepo.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(existing);
+        _contactRepo.Setup(r => r.GetByIdAsync(5, 1)).ReturnsAsync(existing);
         _contactRepo.Setup(r => r.UpdateAsync(It.IsAny<Contact>())).ThrowsAsync(new Exception("db error"));
 
         Assert.ThrowsAsync<Exception>(() => _service.EditContactAsync(1, BuildRequest(contactId: "5")));
@@ -160,11 +161,13 @@ public class ContactServiceTest
     [Test]
     public async Task EditContactAsync_ContactBelongsToDifferentAccount_ThrowsUnauthorized()
     {
-        var existing = new Contact { Id = 5, AccountId = 99 };
-        _contactRepo.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(existing);
+        // The scoped repository returns null when the row is not owned by the account.
+        _contactRepo.Setup(r => r.GetByIdAsync(5, 1)).ReturnsAsync((Contact?)null);
 
         Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => _service.EditContactAsync(1, BuildRequest(contactId: "5")));
+
+        _contactRepo.Verify(r => r.UpdateAsync(It.IsAny<Contact>()), Times.Never);
     }
 
     [Test]
@@ -179,13 +182,15 @@ public class ContactServiceTest
     [Test]
     public async Task DeleteContactAsync_ValidContact_DeletesAndCommits()
     {
-        var existing = new Contact { Id = 3, AccountId = 1 };
-        _contactRepo.Setup(r => r.GetByIdAsync(3)).ReturnsAsync(existing);
-        _contactRepo.Setup(r => r.DeleteAsync(3)).ReturnsAsync(true);
+        var existing = new Contact { Id = 3, AccountId = 1, IsActive = true };
+        _contactRepo.Setup(r => r.GetByIdAsync(3, 1)).ReturnsAsync(existing);
+        _contactRepo.Setup(r => r.UpdateAsync(It.IsAny<Contact>())).ReturnsAsync(true);
 
         await _service.DeleteContactAsync(1, "3");
 
-        _contactRepo.Verify(r => r.DeleteAsync(3), Times.Once);
+        // Soft delete: the contact is marked inactive, not physically removed.
+        _contactRepo.Verify(r => r.UpdateAsync(It.Is<Contact>(c => c.Id == 3 && c.IsActive == false)), Times.Once);
+        _contactRepo.Verify(r => r.DeleteAsync(It.IsAny<long>(), It.IsAny<long>()), Times.Never);
         _unitOfWork.Verify(u => u.BeginTransaction(), Times.Once);
         _unitOfWork.Verify(u => u.Commit(), Times.Once);
     }
@@ -193,9 +198,9 @@ public class ContactServiceTest
     [Test]
     public async Task DeleteContactAsync_RepositoryThrows_RollsBackAndRethrows()
     {
-        var existing = new Contact { Id = 3, AccountId = 1 };
-        _contactRepo.Setup(r => r.GetByIdAsync(3)).ReturnsAsync(existing);
-        _contactRepo.Setup(r => r.DeleteAsync(3)).ThrowsAsync(new Exception("db error"));
+        var existing = new Contact { Id = 3, AccountId = 1, IsActive = true };
+        _contactRepo.Setup(r => r.GetByIdAsync(3, 1)).ReturnsAsync(existing);
+        _contactRepo.Setup(r => r.UpdateAsync(It.IsAny<Contact>())).ThrowsAsync(new Exception("db error"));
 
         Assert.ThrowsAsync<Exception>(() => _service.DeleteContactAsync(1, "3"));
 
@@ -206,10 +211,12 @@ public class ContactServiceTest
     [Test]
     public async Task DeleteContactAsync_ContactBelongsToDifferentAccount_ThrowsUnauthorized()
     {
-        var existing = new Contact { Id = 3, AccountId = 77 };
-        _contactRepo.Setup(r => r.GetByIdAsync(3)).ReturnsAsync(existing);
+        // The scoped repository returns null when the row is not owned by the account.
+        _contactRepo.Setup(r => r.GetByIdAsync(3, 1)).ReturnsAsync((Contact?)null);
 
         Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => _service.DeleteContactAsync(1, "3"));
+
+        _contactRepo.Verify(r => r.UpdateAsync(It.IsAny<Contact>()), Times.Never);
     }
 }

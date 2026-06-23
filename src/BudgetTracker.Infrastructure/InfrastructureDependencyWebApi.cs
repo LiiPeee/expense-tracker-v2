@@ -28,8 +28,10 @@ public static class InfrastructureDependencyWebApi
         .AddScoped<IBudgetLimitRepository, BudgetLimitRepository>()
         .AddScoped<ISubCategoryRepository, SubCategoryRepository>()
         .AddScoped<IResetPasswordRepository, ResetPasswordRepository>()
+        .AddScoped<IStockRepository, StockRepository>()
         .AddScoped<IUnitOfWork, UnitOfWork>()
-        .AddScoped<IEmailService, EmailService>();
+        .AddScoped<IEmailService, EmailService>()
+        .AddScoped<IStockMarketService, StockMarketService>();
     }
 }
 

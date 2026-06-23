@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace BudgetTracker.Core.Domain.Entities
 {
-    public class SubCategory : BaseEntity
+    public class SubCategory : BaseEntity, IAccountOwned
     {
         public string Name { get; set; } = null!;
         public string? Description { get; set; }

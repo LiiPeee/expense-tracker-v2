@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace BudgetTracker.Core.Domain.Entities
 {
-    public class ResetPassword : BaseEntity
+    public class ResetPassword : BaseEntity, IAccountOwned
     {
         public long AccountId { get; set; }
 

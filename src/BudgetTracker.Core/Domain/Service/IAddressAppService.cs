@@ -4,7 +4,7 @@ namespace BudgetTracker.Core.Domain.Service
 {
     public interface IAddressAppService
     {
-        Task CreateAsync(AddressRequest request);
+        Task CreateAsync(long accountId, AddressRequest request);
     }
 }
 
