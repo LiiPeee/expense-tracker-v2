@@ -1,4 +1,7 @@
-﻿using BudgetTracker.Core.Infrastructure.Services;
+﻿using System.Net.Http.Json;
+using System.Text.Json;
+using BudgetTracker.Core.Infrastructure.OutPut;
+using BudgetTracker.Core.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 
 
@@ -6,25 +9,54 @@ namespace BudgetTracker.Infrastructure.Services
 {
     public class StockMarketService(IHttpClientFactory httpClientFactory, IConfiguration configuration) : IStockMarketService
     {
-        private readonly string urlBase = configuration["HGBrasil:Url"];
-        private readonly string key = configuration["HGBrasil:Key"];
-
+        private readonly string _urlBase = configuration["BrApi:Url"]!;
         private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
-        // TODO(Stock WIP): implement batch quote lookup; stubbed to satisfy IStockMarketService.
-        public Task<string> GetStockByTickerAsync(List<string> ticker)
-            => throw new NotImplementedException("Stock feature WIP.");
 
-        public async Task<string> GetStockByTickerAsync(string ticker)
+        private static readonly JsonSerializerOptions _jsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+        public async Task<List<StockMarketResponse>> GetStockByTickerAsync(List<string> ticker)
         {
             var client = _httpClientFactory.CreateClient();
+            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {configuration["BrApi:Key"]}");
 
-            client.DefaultRequestHeaders.Add("Authorization", configuration["HGBrasil:AuthToken"]);
+            var stocks = new List<StockMarketResponse>();
 
-            string url = $"{urlBase}/v2/finance/quotes?tickers=B3:{ticker}&key={key}";
+            foreach (var tick in ticker)
+            {
+                var response = await client.GetAsync($"{_urlBase}stocks/quote?symbols={tick}");
 
-            var response = await client.GetAsync(url);
+                if (!response.IsSuccessStatusCode)
+                    continue;
 
-            return await response.Content.ReadAsStringAsync();
+                var result = await response.Content.ReadFromJsonAsync<BrApiResponse>(_jsonOptions);
+                var price = result?.Results?.FirstOrDefault().Data;
+
+                stocks.Add(new() { Ticker = tick, PriceMarket = price.RegularMarketPrice });
+            }
+
+            return stocks;
         }
+
+        private record BrApiResponse(List<BrApiResult>? Results);
+
+        private record BrApiResult(string Symbol, BrApiData? Data);
+
+        private record BrApiData(
+            decimal RegularMarketPrice,
+            decimal RegularMarketDayHigh,
+            decimal RegularMarketDayLow,
+            decimal RegularMarketChange,
+            decimal RegularMarketChangePercent,
+            decimal RegularMarketPreviousClose,
+            string? LongName,
+            string? Currency,
+            long MarketCap,
+            long RegularMarketVolume,
+            decimal FiftyTwoWeekLow,
+            decimal FiftyTwoWeekHigh
+        );
     }
 }

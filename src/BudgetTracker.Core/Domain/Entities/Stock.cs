@@ -12,9 +12,9 @@
 
         public decimal PriceBuyed { get; set; }
 
-        public decimal PriceMarket {  get; set; }
+        public decimal PriceMarket { get; set; }
 
-        public decimal Avarage { get; set; }
+        public string Avarage { get; set; }
 
         public long Quantity { get; set; }
     }

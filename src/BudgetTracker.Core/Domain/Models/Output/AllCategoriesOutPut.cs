@@ -1,5 +1,3 @@
-
-
 namespace BudgetTracker.Core.Domain.Models.Output
 {
     public class AllCategoriesOutPut

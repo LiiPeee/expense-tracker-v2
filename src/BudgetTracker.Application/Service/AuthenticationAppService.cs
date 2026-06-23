@@ -260,9 +260,7 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
         {
             var account = await _accountRepository.GetByEmailAsync(request.Email);
 
-            // Generic message + dummy hash verification: avoids both message-based and
-            // timing-based account enumeration (the hash check costs the same whether or not the email exists).
-            if (account == null)
+            if (account is null)
             {
                 new PasswordHasher().VerifyHashedPassword(DummyPasswordHash, request.Password);
                 throw new UnauthorizedAccessException("invalid credentials");
@@ -448,11 +446,11 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
             FirstName = payload.GivenName ?? string.Empty,
             LastName = payload.FamilyName ?? string.Empty,
             Email = payload.Email,
-            Password = null,                
+            Password = null,
             Balance = 0,
             Role = "User",
             IsActive = true,
-            EmailVerified = payload.EmailVerified,   
+            EmailVerified = payload.EmailVerified,
             VerifiedAt = payload.EmailVerified ? DateTime.UtcNow : null
         };
 

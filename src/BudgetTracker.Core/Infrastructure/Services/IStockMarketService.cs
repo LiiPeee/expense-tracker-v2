@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using BudgetTracker.Core.Infrastructure.OutPut;
 
 namespace BudgetTracker.Core.Infrastructure.Services
 {
     public interface IStockMarketService
     {
-        public Task<string> GetStockByTickerAsync(List<string> ticker);
+        Task<List<StockMarketResponse>> GetStockByTickerAsync(List<string> ticker);
     }
 }

@@ -1,11 +1,7 @@
 ﻿using BudgetTracker.Core.Domain.Entities;
 using BudgetTracker.Core.Domain.Repository;
 using BudgetTracker.Core.Infrastructure.Repository;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Dapper;
 
 namespace BudgetTracker.Infrastructure.Persistence.Repository
 {
@@ -15,11 +11,21 @@ namespace BudgetTracker.Infrastructure.Persistence.Repository
         {
         }
 
-        // TODO(Stock WIP): live market-data lookups; stubbed to satisfy IStockRepository.
-        public Task<Stock> GetByStockAndAccountAsync(long accountId, string ticker)
-            => throw new NotImplementedException("Stock feature WIP.");
+        public async Task<Stock?> GetByTickerAsync(long accountId, string ticker)
+        {
+            var query = $"SELECT * FROM {_tableName} WHERE AccountId = @AccountId AND Ticker = @Ticker";
+            EnsureConnectionOpen();
+            return await _db._connection.QuerySingleOrDefaultAsync<Stock>(
+                query, new { AccountId = accountId, Ticker = ticker }, _db._transaction);
+        }
 
-        public Task<Stock?> GetByTickerAsync(long accountId, string ticker)
-            => throw new NotImplementedException("Stock feature WIP.");
+        public async Task<Stock> GetByStockAndAccountAsync(long accountId, string ticker)
+        {
+            var query = $"SELECT * FROM {_tableName} WHERE AccountId = @AccountId AND Ticker = @Ticker";
+            EnsureConnectionOpen();
+            return await _db._connection.QuerySingleOrDefaultAsync<Stock>(
+                query, new { AccountId = accountId, Ticker = ticker }, _db._transaction)
+                ?? throw new KeyNotFoundException($"Stock '{ticker}' not found for this account.");
+        }
     }
 }
