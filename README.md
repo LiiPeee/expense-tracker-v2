@@ -212,6 +212,7 @@ CREATE TABLE IF NOT EXISTS Transactions (
     Paid                BOOLEAN        NOT NULL DEFAULT FALSE,
     NumberOfInstallment BIGINT,
     DateOfInstallment   DATE,
+    CompetenceDate      DATE           NOT NULL DEFAULT CURRENT_DATE,
     QuantityInstallment VARCHAR(50),
     RecurrenceId        BIGINT         NOT NULL,
     ContactId           BIGINT,

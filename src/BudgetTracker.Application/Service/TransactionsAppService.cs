@@ -66,6 +66,14 @@ public class TransactionsAppService : ITransactionsAppService
                 return await CreateInstallemntsAsync(transactionRequest, category, contact.Id, recurrenceId, typeTransactionId, accountId, subCategory.Id);
             }
 
+            // OCCASIONALLY behaves like a credit-card charge: it lands on next month's competence.
+            // Competence uses UtcNow; near a month boundary a user in a negative-offset timezone
+            // (e.g. UTC-3) can land in the following month. Acceptable for now — revisit if we
+            // adopt a per-account timezone.
+            var competenceDate = recurrenceId == (long)Recurrence.OCCASIONALLY
+                ? DateTime.UtcNow.AddMonths(1)
+                : DateTime.UtcNow;
+
             Transactions transaction = new()
             {
                 AccountId = accountId,
@@ -79,14 +87,9 @@ public class TransactionsAppService : ITransactionsAppService
                 Paid = false,
                 RecurrenceId = recurrenceId,
                 TypeTransactionId = typeTransactionId,
+                CompetenceDate = competenceDate,
             };
 
-            if (recurrenceId == 5)
-            {
-                var dateNow = DateTime.UtcNow;
-
-                transaction.CreatedAt = dateNow.AddMonths(1);
-            }
             var savedTransaction = await _transactionRepository.AddAsync(transaction);
             _unitOfWork.Commit();
 
@@ -221,7 +224,8 @@ public class TransactionsAppService : ITransactionsAppService
                         Phone = t.Contact.Phone
                     },
                     Name = t.Name,
-                    Paid = t.Paid
+                    Paid = t.Paid,
+                    CompetenceDate = t.CompetenceDate
                 };
 
                 filter.Add(outputFilter);
@@ -286,8 +290,8 @@ public class TransactionsAppService : ITransactionsAppService
         {
             var transactions = await _transactionRepository.FilterTransactionsByTypeAsync(accountId, type.ToString(), month, year);
 
-            if (!transactions.Items.Any()) throw new KeyNotFoundException("we cannot find transactions");
-
+            // An empty month is a valid result, not an error — return an empty page so the
+            // dashboard renders an empty chart instead of a failure state.
             var filter = new List<FilterByMonthAndYearOutPut>();
 
             foreach (var i in transactions.Items)
@@ -313,7 +317,8 @@ public class TransactionsAppService : ITransactionsAppService
                         Name = i.Category.Name,
                     },
                     QuantityOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.QuantityInstallment : null,
-                    DateOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.DateOfInstallment : null
+                    DateOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.DateOfInstallment : null,
+                    CompetenceDate = i.CompetenceDate
                 });
             }
 
@@ -338,7 +343,7 @@ public class TransactionsAppService : ITransactionsAppService
         {
             var transactions = await _transactionRepository.FilterTransactionsByCategoryAsync(accountId, categoryName.ToString(), type.ToString(), month, year);
 
-            if (!transactions.Items.Any()) throw new KeyNotFoundException("we cannot find transactions");
+            // An empty month is a valid result, not an error — fall through to an empty page.
 
             var filter = new List<FilterByMonthAndYearOutPut>();
 
@@ -364,7 +369,8 @@ public class TransactionsAppService : ITransactionsAppService
                         Name = i.Category.Name,
                     },
                     QuantityOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.QuantityInstallment : null,
-                    DateOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.DateOfInstallment : null
+                    DateOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.DateOfInstallment : null,
+                    CompetenceDate = i.CompetenceDate
                 });
             }
 
@@ -389,7 +395,7 @@ public class TransactionsAppService : ITransactionsAppService
         {
             var transactions = await _transactionRepository.FilterByMonthAndYearAsync(accountId, month, year, pageNumber);
 
-            if (!transactions.Items.Any()) throw new KeyNotFoundException("we cannot find transactions");
+            // An empty month is a valid result, not an error — fall through to an empty page.
 
             var filter = new List<FilterByMonthAndYearOutPut>();
 
@@ -415,7 +421,8 @@ public class TransactionsAppService : ITransactionsAppService
                         Name = i.Category.Name,
                     },
                     QuantityOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.QuantityInstallment : null,
-                    DateOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.DateOfInstallment : null
+                    DateOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.DateOfInstallment : null,
+                    CompetenceDate = i.CompetenceDate
                 });
             }
 
@@ -439,7 +446,7 @@ public class TransactionsAppService : ITransactionsAppService
 
         var transactions = await _transactionRepository.FilterByMonthAndContactAsync(accountId, year, month, type.ToString(), contactId, pageNumber);
 
-        if (!transactions.Items.Any()) throw new KeyNotFoundException("we cannot find transactions");
+        // An empty month is a valid result, not an error — fall through to an empty page.
 
         var filter = new List<FilterByMonthAndYearOutPut>();
 
@@ -456,7 +463,8 @@ public class TransactionsAppService : ITransactionsAppService
                     Phone = t.Contact.Phone
                 },
                 Name = t.Name,
-                Paid = t.Paid
+                Paid = t.Paid,
+                CompetenceDate = t.CompetenceDate
             };
 
             filter.Add(outputFilter);
@@ -524,6 +532,8 @@ public class TransactionsAppService : ITransactionsAppService
                     SubCategoryId = subCategoryId,
                     QuantityInstallment = $"{i}/{request.NumberOfInstallment}",
                     DateOfInstallment = dateInstallemnts,
+                    // Installments anchor on their own due date; the OCCASIONALLY push does not apply here.
+                    CompetenceDate = dateInstallemnts,
                     Description = request.Description,
                     NumberOfInstallment = request.NumberOfInstallment,
                     Paid = false,
