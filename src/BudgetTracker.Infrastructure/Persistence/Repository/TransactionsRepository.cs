@@ -28,8 +28,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
         INNER JOIN Category cat ON t.CategoryId = cat.Id
         INNER JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
         WHERE t.AccountId = @AccountId AND tp.Name = @Type AND cat.Name = @Category 
-            AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year)
-            OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year))
+            AND (EXTRACT(MONTH FROM t.CompetenceDate) = @Month AND EXTRACT(YEAR FROM t.CompetenceDate) = @Year)
         ORDER BY t.Id DESC
         LIMIT @PageSize OFFSET @OffSet;
 
@@ -39,8 +38,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
         INNER JOIN Category cat ON t.CategoryId = cat.Id
         INNER JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
         WHERE t.AccountId = @AccountId AND tp.Name = @Type AND cat.Name = @Category 
-            AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year)
-            OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year));";
+            AND (EXTRACT(MONTH FROM t.CompetenceDate) = @Month AND EXTRACT(YEAR FROM t.CompetenceDate) = @Year);";
 
         if (_db._connection.State != ConnectionState.Open)
         {
@@ -86,8 +84,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
         INNER JOIN Category cat ON t.CategoryId = cat.Id
         INNER JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
         WHERE t.AccountId = @AccountId AND tp.Name = @Type 
-            AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year)
-            OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year))
+            AND (EXTRACT(MONTH FROM t.CompetenceDate) = @Month AND EXTRACT(YEAR FROM t.CompetenceDate) = @Year)
         ORDER BY t.Id DESC
         LIMIT @PageSize OFFSET @OffSet;
 
@@ -97,8 +94,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
         INNER JOIN Category cat ON t.CategoryId = cat.Id
         INNER JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
         WHERE t.AccountId = @AccountId AND tp.Name = @Type 
-            AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year)
-            OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year));";
+            AND (EXTRACT(MONTH FROM t.CompetenceDate) = @Month AND EXTRACT(YEAR FROM t.CompetenceDate) = @Year);";
 
         if (_db._connection.State != ConnectionState.Open)
         {
@@ -143,8 +139,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
         INNER JOIN Contact ct ON t.ContactId = ct.Id
         INNER JOIN Category cat ON t.CategoryId = cat.Id
         WHERE t.AccountId = @AccountId 
-            AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year)
-            OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year))
+            AND (EXTRACT(MONTH FROM t.CompetenceDate) = @Month AND EXTRACT(YEAR FROM t.CompetenceDate) = @Year)
         ORDER BY t.Id DESC
         LIMIT @PageSize OFFSET @OffSet;
 
@@ -153,8 +148,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
         INNER JOIN Contact ct ON t.ContactId = ct.Id
         INNER JOIN Category cat ON t.CategoryId = cat.Id
         WHERE t.AccountId = @AccountId 
-            AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year)
-            OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year));";
+            AND (EXTRACT(MONTH FROM t.CompetenceDate) = @Month AND EXTRACT(YEAR FROM t.CompetenceDate) = @Year);";
 
         if (_db._connection.State != ConnectionState.Open)
         {
@@ -202,8 +196,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
         INNER JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
         WHERE t.AccountId = @AccountId AND tp.Name = @Type 
             AND ct.Id = @ContactId
-            AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year)
-            OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year))
+            AND (EXTRACT(MONTH FROM t.CompetenceDate) = @Month AND EXTRACT(YEAR FROM t.CompetenceDate) = @Year)
         ORDER BY t.Id DESC
         LIMIT @PageSize OFFSET @OffSet;
 
@@ -213,8 +206,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
         INNER JOIN Category cat ON t.CategoryId = cat.Id
         INNER JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
         WHERE t.AccountId = @AccountId AND tp.Name = @Type 
-            AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year)
-            OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year));";
+            AND (EXTRACT(MONTH FROM t.CompetenceDate) = @Month AND EXTRACT(YEAR FROM t.CompetenceDate) = @Year);";
 
         if (_db._connection.State != ConnectionState.Open)
         {
@@ -250,8 +242,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
     {
         var query = @"SELECT * FROM Transactions t
         WHERE t.AccountId = @AccountId 
-            AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year) 
-            OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year))
+            AND (EXTRACT(MONTH FROM t.CompetenceDate) = @Month AND EXTRACT(YEAR FROM t.CompetenceDate) = @Year)
             AND t.TypeTransactionId = @TypeId";
 
         if (_db._connection.State == ConnectionState.Open)
@@ -269,8 +260,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
     {
         var query = @"SELECT * FROM Transactions t
         WHERE t.AccountId = @AccountId 
-            AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year) 
-            OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year))
+            AND (EXTRACT(MONTH FROM t.CompetenceDate) = @Month AND EXTRACT(YEAR FROM t.CompetenceDate) = @Year)
             AND t.TypeTransactionId = @TypeId";
 
         if (_db._connection.State == ConnectionState.Open)
@@ -290,8 +280,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
         FROM Transactions t 
         LEFT JOIN Contact ct ON t.ContactId = ct.Id
         WHERE t.AccountId = @AccountId 
-            AND ((EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year) 
-            OR (EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year))";
+            AND (EXTRACT(MONTH FROM t.CompetenceDate) = @Month AND EXTRACT(YEAR FROM t.CompetenceDate) = @Year)";
 
         if (_db._connection.State == ConnectionState.Open)
         {
@@ -329,8 +318,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
         WHERE t.AccountId = @AccountId
             AND t.CategoryId = @CategoryId
             AND t.TypeTransactionId = @ExpenseType
-            AND ((t.DateOfInstallment IS NULL AND EXTRACT(MONTH FROM t.CreatedAt) = @Month AND EXTRACT(YEAR FROM t.CreatedAt) = @Year)
-                OR (t.DateOfInstallment IS NOT NULL AND EXTRACT(MONTH FROM t.DateOfInstallment) = @Month AND EXTRACT(YEAR FROM t.DateOfInstallment) = @Year))";
+            AND (EXTRACT(MONTH FROM t.CompetenceDate) = @Month AND EXTRACT(YEAR FROM t.CompetenceDate) = @Year)";
 
         if (_db._connection.State != ConnectionState.Open)
             throw new Exception("connection lost");

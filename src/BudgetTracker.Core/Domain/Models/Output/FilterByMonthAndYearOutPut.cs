@@ -19,6 +19,7 @@ namespace BudgetTracker.Core.Domain.Dtos.Output
         public ContactOutput? Contact { get; set; }
         public string? QuantityOfInstallment { get; set; }
         public DateTime? DateOfInstallment { get; set; }
+        public DateTime? CompetenceDate { get; set; }
         public long? Recurrence { get; set; }
         public string? SubCategory { get; set; }
     }
