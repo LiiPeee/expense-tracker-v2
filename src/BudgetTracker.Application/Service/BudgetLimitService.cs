@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using BudgetTracker.Core.Domain.Dtos.Output;
 using BudgetTracker.Core.Domain.Entities;
+using BudgetTracker.Core.Domain.Models.Output;
 using BudgetTracker.Core.Domain.Models.Request.BudgetLimit;
 using BudgetTracker.Core.Domain.Repository;
 using BudgetTracker.Core.Domain.Service;
@@ -57,12 +58,12 @@ namespace BudgetTracker.Application.Service
             }
         }
 
-        public async Task<IPagedResult<BudgetLimit?>> GetByAccountIdAsync(long accountId, int pageNumber = 1)
+        public async Task<IPagedResult<BudgetLimitOutput>> GetByAccountIdAsync(long accountId, int pageNumber = 1)
         {
             var result = await _budgetLimitRepository.GetByAccountIdAsync(accountId, pageNumber);
 
-            // Spending is computed on read from the transactions themselves — the configured
-            // LimitAmount is never mutated, so there is no denormalized counter to drift.
+            var outputs = new List<BudgetLimitOutput>();
+
             foreach (var budget in result.Items)
             {
                 if (budget is null) continue;
@@ -70,13 +71,38 @@ namespace BudgetTracker.Application.Service
                 var spent = await _transactionRepository.GetExpenseTotalByCategoryAsync(
                     accountId, budget.CategoryId, budget.Month, budget.Year);
 
-                budget.Percentage = budget.LimitAmount > 0
+                var percentage = budget.LimitAmount > 0
                     ? Math.Round(spent / budget.LimitAmount * 100, 2)
                     : 0;
-                budget.IsLimit = spent > budget.LimitAmount;
+                var isLimit = spent > budget.LimitAmount;
+
+                budget.Percentage = percentage;
+                budget.IsLimit = isLimit;
+
+                _unitOfWork.BeginTransaction();
+                await _budgetLimitRepository.UpdateAsync(budget);
+                _unitOfWork.Commit();
+
+                outputs.Add(new BudgetLimitOutput(
+                    budget.Id,
+                    budget.CategoryId,
+                    budget.Category?.Name ?? string.Empty,
+                    budget.Month,
+                    budget.Year,
+                    budget.LimitAmount,
+                    spent,
+                    percentage,
+                    isLimit
+                ));
             }
 
-            return result;
+            return new IPagedResult<BudgetLimitOutput>
+            {
+                PageNumber = result.PageNumber,
+                PageSize = result.PageSize,
+                TotalRecords = result.TotalRecords,
+                Items = outputs
+            };
         }
     }
 }
