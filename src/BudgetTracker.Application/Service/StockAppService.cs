@@ -48,15 +48,18 @@ namespace BudgetTracker.Application.Service
 
             var allStocks = stocks.Select(x =>
             {
+                // The market service may not return a quote for every ticker (rate limit,
+                // unknown symbol). Treat a missing quote as price 0 instead of throwing.
                 var live = liveStocks.FirstOrDefault(l => l.Ticker == x.Ticker);
-                var percentage = stocks is not null && x.PriceBuyed > 0
-                        ? (live.PriceMarket - x.PriceBuyed) / x.PriceBuyed * 100
+                var priceMarket = live?.PriceMarket ?? 0;
+                var percentage = x.PriceBuyed > 0
+                        ? (priceMarket - x.PriceBuyed) / x.PriceBuyed * 100
                         : 0;
                 return new GetAllStockResponse()
                 {
                     Ticker = x.Ticker,
                     PriceBuyed = x.PriceBuyed,
-                    PriceMarket = live?.PriceMarket ?? 0,
+                    PriceMarket = priceMarket,
                     Percentage = $"{Math.Round(percentage, 2)}%"
                 };
 
@@ -65,10 +68,12 @@ namespace BudgetTracker.Application.Service
 
             foreach (var live in liveStocks)
             {
+                var data = stocks.FirstOrDefault(i => i.Ticker == live.Ticker);
+                if (data is null) continue;
+
                 _unitOfWork.BeginTransaction();
 
-                var data = stocks.FirstOrDefault(i => i.Ticker == live.Ticker) ?? null;
-                var percentage = data is not null && data.PriceBuyed > 0
+                var percentage = data.PriceBuyed > 0
                         ? (live.PriceMarket - data.PriceBuyed) / data.PriceBuyed * 100
                         : 0;
 

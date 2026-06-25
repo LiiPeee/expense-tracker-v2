@@ -55,7 +55,7 @@ public class TransactionsAppService : ITransactionsAppService
             }
 
             var subCategory = await _subCategoryRepository.GetByNameAsync(accountId, transactionRequest.SubCategoryName, category)
-                ?? await _subCategoryRepository.AddAsync(new SubCategory 
+                ?? await _subCategoryRepository.AddAsync(new SubCategory
                 { Name = transactionRequest.SubCategoryName, IsActive = true, CategoryId = category, AccountId = accountId });
 
             var recurrenceId = (long)transactionRequest.Recurrence;
@@ -66,10 +66,6 @@ public class TransactionsAppService : ITransactionsAppService
                 return await CreateInstallemntsAsync(transactionRequest, category, contact.Id, recurrenceId, typeTransactionId, accountId, subCategory.Id);
             }
 
-            // OCCASIONALLY behaves like a credit-card charge: it lands on next month's competence.
-            // Competence uses UtcNow; near a month boundary a user in a negative-offset timezone
-            // (e.g. UTC-3) can land in the following month. Acceptable for now — revisit if we
-            // adopt a per-account timezone.
             var competenceDate = recurrenceId == (long)Recurrence.OCCASIONALLY
                 ? DateTime.UtcNow.AddMonths(1)
                 : DateTime.UtcNow;
