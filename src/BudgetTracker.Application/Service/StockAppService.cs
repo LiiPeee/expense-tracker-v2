@@ -18,13 +18,6 @@ namespace BudgetTracker.Application.Service
         private readonly IStockMarketService _stockMarketService = stockMarketService;
         public async Task CreateAsync(long accountId, CreateStockRequest request)
         {
-            var stock = await _stockRepository.GetByTickerAsync(accountId, request.Ticker);
-
-            if (stock is not null)
-            {
-                throw new InvalidOperationException("This stock already exists!");
-            }
-
             var newStock = new Stock()
             {
                 AccountId = accountId,
@@ -48,8 +41,6 @@ namespace BudgetTracker.Application.Service
 
             var allStocks = stocks.Select(x =>
             {
-                // The market service may not return a quote for every ticker (rate limit,
-                // unknown symbol). Treat a missing quote as price 0 instead of throwing.
                 var live = liveStocks.FirstOrDefault(l => l.Ticker == x.Ticker);
                 var priceMarket = live?.PriceMarket ?? 0;
                 var percentage = x.PriceBuyed > 0
@@ -60,7 +51,8 @@ namespace BudgetTracker.Application.Service
                     Ticker = x.Ticker,
                     PriceBuyed = x.PriceBuyed,
                     PriceMarket = priceMarket,
-                    Percentage = $"{Math.Round(percentage, 2)}%"
+                    Percentage = $"{Math.Round(percentage, 2)}%",
+                    Quantity = x.Quantity
                 };
 
             }).ToList();
