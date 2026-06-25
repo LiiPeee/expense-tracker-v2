@@ -26,15 +26,26 @@ namespace BudgetTracker.Infrastructure.Services
 
             foreach (var tick in ticker)
             {
-                var response = await client.GetAsync($"{_urlBase}stocks/quote?symbols={tick}");
+                try
+                {
+                    var response = await client.GetAsync($"{_urlBase}stocks/quote?symbols={tick}");
 
-                if (!response.IsSuccessStatusCode)
-                    continue;
+                    if (!response.IsSuccessStatusCode)
+                        continue;
 
-                var result = await response.Content.ReadFromJsonAsync<BrApiResponse>(_jsonOptions);
-                var price = result?.Results?.FirstOrDefault().Data;
+                    var result = await response.Content.ReadFromJsonAsync<BrApiResponse>(_jsonOptions);
+                    var price = result?.Results?.FirstOrDefault()?.Data;
 
-                stocks.Add(new() { Ticker = tick, PriceMarket = price.RegularMarketPrice });
+                    if (price is null)
+                        continue;
+
+                    stocks.Add(new() { Ticker = tick, PriceMarket = price.RegularMarketPrice });
+                }
+                catch
+                {
+                    // Skip tickers the market API can't resolve so a single failure
+                    // doesn't break the whole portfolio fetch.
+                }
             }
 
             return stocks;
