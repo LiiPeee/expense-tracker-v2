@@ -8,5 +8,7 @@ public class GetAllStockResponse
 
     public decimal PriceBuyed { get; set; }
 
+    public long Quantity { get; set; }
+
     public string Percentage { get; set; }
 }
