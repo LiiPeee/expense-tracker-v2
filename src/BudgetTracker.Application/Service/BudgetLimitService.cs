@@ -68,8 +68,6 @@ namespace BudgetTracker.Application.Service
             {
                 if (budget is null) continue;
 
-                // Legacy rows may hold a negative LimitAmount; use the absolute value so the
-                // percentage is computed correctly (and heal the stored value on read).
                 var limit = Math.Abs(budget.LimitAmount);
 
                 var spent = await _transactionRepository.GetExpenseTotalByCategoryAsync(
