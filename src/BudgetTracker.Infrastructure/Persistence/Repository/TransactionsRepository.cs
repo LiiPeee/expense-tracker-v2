@@ -59,7 +59,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
             },
             splitOn: "Id,Id").ToList();
 
-        var totalRecords = await multi.ReadSingleAsync<int>();
+        var totalRecords = items.Count;
 
         return new IPagedResult<Transactions>
         {
@@ -115,7 +115,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
             },
             splitOn: "Id,Id").ToList();
 
-        var totalRecords = await multi.ReadSingleAsync<int>();
+        var totalRecords = items.Count;
 
         return new IPagedResult<Transactions>
         {
@@ -169,7 +169,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
             },
             splitOn: "Id,Id").ToList();
 
-        var totalRecords = await multi.ReadSingleAsync<int>();
+        var totalRecords = items.Count;
 
         return new IPagedResult<Transactions>
         {
@@ -180,7 +180,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
         };
     }
 
-    public async Task<IPagedResult<Transactions>> FilterByMonthAndContactAsync(long accountId, long year, long month, string type, long contactId, int pageNumber = 1)
+    public async Task<IPagedResult<Transactions>> FilterByContactAsync(long accountId, long year, long month, string type, long contactId, int pageNumber = 1)
     {
 
         const int pageSize = 10;
@@ -215,7 +215,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
 
         using var multi = await _db._connection.QueryMultipleAsync(
             query,
-            new { AccountId = accountId, Month = month, Year = year, OffSet = offset, PageSize = pageSize, ContactId = contactId,Type = type },
+            new { AccountId = accountId, Month = month, Year = year, OffSet = offset, PageSize = pageSize, ContactId = contactId, Type = type },
             _db._transaction);
 
         var items = multi.Read<Transactions, Contact, Category, Transactions>(
@@ -227,7 +227,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
             },
             splitOn: "Id,Id").ToList();
 
-        var totalRecords = await multi.ReadSingleAsync<int>();
+        var totalRecords = items.Count;
 
         return new IPagedResult<Transactions>
         {

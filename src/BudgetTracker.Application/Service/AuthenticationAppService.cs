@@ -31,8 +31,6 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
 
     private readonly IResetPasswordRepository _resetPasswordRepository = resetPasswordRepository;
 
-    // Pre-computed hash used to equalize sign-in timing when the account does not exist,
-    // so response time does not reveal whether an email is registered.
     private static readonly string DummyPasswordHash = new PasswordHasher().HashPassword("timing-equalizer-not-a-real-password");
 
     public async Task<string?> SignUpAsync(CreateAccountRequestDto request)
@@ -133,8 +131,6 @@ public class AuthenticationAppService(IAccountRepository accountRepository,
 
         var resetPassword = await _resetPasswordRepository.GetByAccountIdAsync(account.Id);
 
-        // Verify only — do NOT consume the code here, otherwise ResetPasswordAsync
-        // could never re-validate it. Consumption happens when the password is reset.
         if (!IsResetCodeValid(resetPassword, token))
             throw new UnauthorizedAccessException("Invalid or expired reset code");
 
