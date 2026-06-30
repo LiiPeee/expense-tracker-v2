@@ -126,7 +126,6 @@ public class ContactAppService : IContactAppService
             if (contact is null)
                 throw new UnauthorizedAccessException("Contact not found or access denied");
 
-            // Soft delete: keep the row (transactions reference it) but hide it from listings.
             contact.IsActive = false;
 
             _unitOfWork.BeginTransaction();

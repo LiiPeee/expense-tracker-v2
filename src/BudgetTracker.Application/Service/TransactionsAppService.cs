@@ -153,14 +153,11 @@ public class TransactionsAppService : ITransactionsAppService
             if (transaction is null)
                 throw new UnauthorizedAccessException("Transaction not found or access denied");
 
-            // Nothing to do (not a pay request, or already paid) — don't open a transaction.
             if (paidTransactionRequest.Paid != true || transaction.Paid == true)
                 return;
 
             _unitOfWork.BeginTransaction();
 
-            // Atomically flip false -> true. Only the caller that wins the flip applies the
-            // balance delta, so concurrent requests cannot double-debit the account.
             var flipped = await _transactionRepository.MarkAsPaidAsync(transaction.Id, accountId);
 
             if (flipped)
@@ -286,8 +283,6 @@ public class TransactionsAppService : ITransactionsAppService
         {
             var transactions = await _transactionRepository.FilterTransactionsByTypeAsync(accountId, type.ToString(), month, year);
 
-            // An empty month is a valid result, not an error — return an empty page so the
-            // dashboard renders an empty chart instead of a failure state.
             var filter = new List<FilterByMonthAndYearOutPut>();
 
             foreach (var i in transactions.Items)
@@ -339,8 +334,6 @@ public class TransactionsAppService : ITransactionsAppService
         {
             var transactions = await _transactionRepository.FilterTransactionsByCategoryAsync(accountId, categoryName.ToString(), type.ToString(), month, year);
 
-            // An empty month is a valid result, not an error — fall through to an empty page.
-
             var filter = new List<FilterByMonthAndYearOutPut>();
 
             foreach (var i in transactions.Items)
@@ -391,8 +384,6 @@ public class TransactionsAppService : ITransactionsAppService
         {
             var transactions = await _transactionRepository.FilterByMonthAndYearAsync(accountId, month, year, pageNumber);
 
-            // An empty month is a valid result, not an error — fall through to an empty page.
-
             var filter = new List<FilterByMonthAndYearOutPut>();
 
             foreach (var i in transactions.Items)
@@ -440,9 +431,7 @@ public class TransactionsAppService : ITransactionsAppService
     public async Task<IPagedResult<FilterByMonthAndYearOutPut>> FilterByContactAndMonth(long accountId, long year, long month, TypeTransaction type, long contactId, int pageNumber = 1)
     {
 
-        var transactions = await _transactionRepository.FilterByMonthAndContactAsync(accountId, year, month, type.ToString(), contactId, pageNumber);
-
-        // An empty month is a valid result, not an error — fall through to an empty page.
+        var transactions = await _transactionRepository.FilterByContactAsync(accountId, year, month, type.ToString(), contactId, pageNumber);
 
         var filter = new List<FilterByMonthAndYearOutPut>();
 
@@ -528,7 +517,6 @@ public class TransactionsAppService : ITransactionsAppService
                     SubCategoryId = subCategoryId,
                     QuantityInstallment = $"{i}/{request.NumberOfInstallment}",
                     DateOfInstallment = dateInstallemnts,
-                    // Installments anchor on their own due date; the OCCASIONALLY push does not apply here.
                     CompetenceDate = dateInstallemnts,
                     Description = request.Description,
                     NumberOfInstallment = request.NumberOfInstallment,

@@ -16,7 +16,6 @@ public class AddressAppService(IContactRepository contactRepository, IAddressRep
     {
         try
         {
-            // The address is only allowed under a contact owned by the calling account.
             var contact = await _contactRepository.GetByNameAsync(accountId, addressRequest.ContactName)
                 ?? throw new UnauthorizedAccessException("Contact not found or access denied");
 

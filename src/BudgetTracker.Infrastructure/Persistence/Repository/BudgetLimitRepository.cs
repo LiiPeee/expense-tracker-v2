@@ -50,7 +50,7 @@ namespace BudgetTracker.Infrastructure.Persistence.Repository
                 },
                 splitOn: "Id,Id").ToList();
 
-            var totalRecords = await multi.ReadSingleAsync<int>();
+            var totalRecords = items.Count;
 
             return new IPagedResult<BudgetLimit?>
             {
@@ -68,7 +68,7 @@ namespace BudgetTracker.Infrastructure.Persistence.Repository
             INNER JOIN Account act ON act.Id = bt.AccountId
             WHERE ct.Id = @CategoryId AND act.Id = @AccountId";
 
-            if(_db._connection.State != ConnectionState.Open)
+            if (_db._connection.State != ConnectionState.Open)
             {
                 throw new Exception("connection lost");
             }
