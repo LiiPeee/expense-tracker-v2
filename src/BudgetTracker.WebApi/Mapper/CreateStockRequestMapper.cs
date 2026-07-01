@@ -15,9 +15,13 @@ namespace BudgetTracker.WebApi.Mapper
             {
                 Ticker = request.Ticker,
                 Price = request.Price,
+                FixedIncomeType = request.FixedIncomeType,
                 Title = request.Title,
                 Description = request.Description,
                 Quantity = request.Quantity,
+                CdiRate = request.CdiRate,
+                IsStock = request.IsStock,
+                InvestmentDate = request.InvestmentDate,
             };
         }
     }

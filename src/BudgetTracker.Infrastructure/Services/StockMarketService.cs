@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using System.Text.Json;
 using BudgetTracker.Core.Infrastructure.OutPut;
 using BudgetTracker.Core.Infrastructure.Services;
@@ -17,57 +17,42 @@ namespace BudgetTracker.Infrastructure.Services
             PropertyNameCaseInsensitive = true
         };
 
+        private async Task<StockMarketResponse?> FetchPriceAsync(HttpClient client, string tick)
+        {
+            try
+            {
+                var response = await client.GetAsync($"{_urlBase}quote/{tick}");
+                if (!response.IsSuccessStatusCode) return null;
+
+                var result = await response.Content.ReadFromJsonAsync<BrApiResponse>(_jsonOptions);
+                var price = result?.Results?.FirstOrDefault()?.RegularMarketPrice ?? 0;
+
+                return price > 0 ? new StockMarketResponse { Ticker = tick, PriceMarket = price } : null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         public async Task<List<StockMarketResponse>> GetStockByTickerAsync(List<string> ticker)
         {
             var client = _httpClientFactory.CreateClient();
             client.DefaultRequestHeaders.Add("Authorization", $"Bearer {configuration["BrApi:Key"]}");
 
-            var stocks = new List<StockMarketResponse>();
+            var results = await Task.WhenAll(ticker.Select(tick => FetchPriceAsync(client, tick)));
 
-            foreach (var tick in ticker)
-            {
-                try
-                {
-                    var response = await client.GetAsync($"{_urlBase}stocks/quote?symbols={tick}");
-
-                    if (!response.IsSuccessStatusCode)
-                        continue;
-
-                    var result = await response.Content.ReadFromJsonAsync<BrApiResponse>(_jsonOptions);
-                    var price = result?.Results?.FirstOrDefault()?.Data;
-
-                    if (price is null)
-                        continue;
-
-                    stocks.Add(new() { Ticker = tick, PriceMarket = price.RegularMarketPrice });
-                }
-                catch
-                {
-                    // Skip tickers the market API can't resolve so a single failure
-                    // doesn't break the whole portfolio fetch.
-                }
-            }
-
-            return stocks;
+            return results.Where(r => r is not null).Select(r => r!).ToList();
         }
 
-        private record BrApiResponse(List<BrApiResult>? Results);
+        public async Task<List<StockMarketResponse>> GetFundsByTickerAsync(List<string> ticker)
+        {
+            var client = _httpClientFactory.CreateClient();
+            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {configuration["BrApi:Key"]}");
 
-        private record BrApiResult(string Symbol, BrApiData? Data);
+            var results = await Task.WhenAll(ticker.Select(tick => FetchPriceAsync(client, tick)));
 
-        private record BrApiData(
-            decimal RegularMarketPrice,
-            decimal RegularMarketDayHigh,
-            decimal RegularMarketDayLow,
-            decimal RegularMarketChange,
-            decimal RegularMarketChangePercent,
-            decimal RegularMarketPreviousClose,
-            string? LongName,
-            string? Currency,
-            long MarketCap,
-            long RegularMarketVolume,
-            decimal FiftyTwoWeekLow,
-            decimal FiftyTwoWeekHigh
-        );
+            return results.Where(r => r is not null).Select(r => r!).ToList();
+        }
     }
 }

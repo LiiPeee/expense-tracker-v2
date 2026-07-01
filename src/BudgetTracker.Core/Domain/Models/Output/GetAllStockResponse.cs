@@ -8,7 +8,15 @@ public class GetAllStockResponse
 
     public decimal PriceBuyed { get; set; }
 
+    public DateTime? InvestmentDate { get; set; }
+
+    public decimal? CdiRate { get; set; }
+
     public long Quantity { get; set; }
 
     public string Percentage { get; set; }
+
+    public bool IsStock { get; set; }
+
+    public string? FixedIncomeType { get; set; }
 }

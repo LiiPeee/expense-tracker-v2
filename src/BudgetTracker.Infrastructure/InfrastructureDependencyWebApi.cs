@@ -31,7 +31,8 @@ public static class InfrastructureDependencyWebApi
         .AddScoped<IStockRepository, StockRepository>()
         .AddScoped<IUnitOfWork, UnitOfWork>()
         .AddScoped<IEmailService, EmailService>()
-        .AddScoped<IStockMarketService, StockMarketService>();
+        .AddScoped<IStockMarketService, StockMarketService>()
+        .AddScoped<IBacenService, BacenService>();
     }
 }
 
