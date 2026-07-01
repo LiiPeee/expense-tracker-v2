@@ -6,9 +6,17 @@
 
         public string Ticker { get; set; }
 
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         public string Title { get; set; }
+
+        public bool IsStock { get; set; }
+
+        public string? FixedIncomeType { get; set; }
+
+        public decimal? CdiRate { get; set; }
+
+        public DateTime? InvestmentDate { get; set; }
 
         public decimal PriceBuyed { get; set; }
 

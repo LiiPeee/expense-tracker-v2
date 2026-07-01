@@ -33,5 +33,15 @@ namespace BudgetTracker.WebApi.Controllers
 
             return Ok(response);
         }
+
+        [HttpGet("[action]")]
+        public async Task<ActionResult> GetAllFundsAsync([FromQuery] int page = 1)
+        {
+            var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            var response = await _stockAppservice.GetAllFundsAsync(accountId, page);
+
+            return Ok(response);
+        }
     }
 }

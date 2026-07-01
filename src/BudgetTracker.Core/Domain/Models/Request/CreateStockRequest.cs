@@ -14,10 +14,18 @@ namespace BudgetTracker.Core.Domain.Models.Request
         [StringLength(30, MinimumLength = 5, ErrorMessage = "Nome da ação deve ser maior que 5 e menor que 30")]
         public required string Title { get; set; }
 
+        public decimal? CdiRate { get; set; }
+
+        public DateTime? InvestmentDate { get; set; }
+
         public required decimal Price { get; set; }
+
+        public string? FixedIncomeType { get; set; }
 
         public required long Quantity { get; set; }
 
-        public string Description { get; set; }
+        public string? Description { get; set; }
+
+        public bool IsStock { get; set; }
     }
 }

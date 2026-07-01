@@ -16,5 +16,6 @@ namespace BudgetTracker.Core.Domain.Service
 
         public Task<IPagedResult<GetAllStockResponse>> GetAllStockAsync(long accountId, int page = 1);
 
+        public Task<IPagedResult<GetAllStockResponse>> GetAllFundsAsync(long accountId, int page = 1);
     }
 }

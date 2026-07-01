@@ -11,9 +11,6 @@ namespace BudgetTracker.Core.Infrastructure.Repository
 {
     public interface IStockRepository : IAccountScopedRepository<Stock>
     {
-        // TODO(Stock WIP): live market-data lookups are part of the unfinished Stock feature.
-        public Task<Stock> GetByStockAndAccountAsync(long accountId, string ticker);
-
-        public Task<Stock?> GetByTickerAsync(long accountId, string ticker);
+        public Task<Stock?> GetByStockAndAccountAsync(long accountId, string ticker);
     }
 }
