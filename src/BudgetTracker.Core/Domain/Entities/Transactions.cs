@@ -13,11 +13,6 @@ public class Transactions : BaseEntity, IAccountOwned
     public bool Paid { get; set; }
     public long? NumberOfInstallment { get; set; }
     public DateTime? DateOfInstallment { get; set; }
-    /// <summary>
-    /// Financial reference month the transaction belongs to (competência). Distinct from
-    /// <see cref="BaseEntity.CreatedAt"/>, which stays a pure audit timestamp. All month/year
-    /// summaries filter on this column.
-    /// </summary>
     public DateTime CompetenceDate { get; set; }
     public string? QuantityInstallment { get; set; }
     public long RecurrenceId { get; set; }

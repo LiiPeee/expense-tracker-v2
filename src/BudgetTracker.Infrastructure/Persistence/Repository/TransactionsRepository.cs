@@ -59,7 +59,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
             },
             splitOn: "Id,Id").ToList();
 
-        var totalRecords = items.Count;
+        var totalRecords = (int)await multi.ReadSingleAsync<long>();
 
         return new IPagedResult<Transactions>
         {
@@ -115,7 +115,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
             },
             splitOn: "Id,Id").ToList();
 
-        var totalRecords = items.Count;
+        var totalRecords = (int)await multi.ReadSingleAsync<long>();
 
         return new IPagedResult<Transactions>
         {
@@ -169,7 +169,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
             },
             splitOn: "Id,Id").ToList();
 
-        var totalRecords = items.Count;
+        var totalRecords = (int)await multi.ReadSingleAsync<long>();
 
         return new IPagedResult<Transactions>
         {
@@ -206,7 +206,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
         INNER JOIN Category cat ON t.CategoryId = cat.Id
         INNER JOIN TypeTransaction tp ON t.TypeTransactionId = tp.Id
         WHERE t.AccountId = @AccountId AND tp.Name = @Type 
-            AND (EXTRACT(MONTH FROM t.CompetenceDate) = @Month AND EXTRACT(YEAR FROM t.CompetenceDate) = @Year);";
+            AND (EXTRACT(MONTH FROM t.CompetenceDate) = @Month AND EXTRACT(YEAR FROM t.CompetenceDate) = @Year) AND ct.Id = @ContactId ;";
 
         if (_db._connection.State != ConnectionState.Open)
         {
@@ -227,7 +227,7 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
             },
             splitOn: "Id,Id").ToList();
 
-        var totalRecords = items.Count;
+        var totalRecords = (int)await multi.ReadSingleAsync<long>();
 
         return new IPagedResult<Transactions>
         {
@@ -299,14 +299,14 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
         }
     }
 
-    public async Task<bool> MarkAsPaidAsync(long id, long accountId)
+    public async Task<bool> MarkAsPaidAsync(long id, long accountId, bool paid)
     {
-        const string query = @"UPDATE Transactions SET Paid = true WHERE Id = @Id AND AccountId = @AccountId AND Paid = false";
+        const string query = @"UPDATE Transactions SET Paid = @Paid WHERE Id = @Id AND AccountId = @AccountId";
 
         if (_db._connection.State != ConnectionState.Open)
             throw new Exception("connection lost");
 
-        var rows = await _db._connection.ExecuteAsync(query, new { Id = id, AccountId = accountId }, _db._transaction);
+        var rows = await _db._connection.ExecuteAsync(query, new { Id = id, AccountId = accountId, Paid = paid }, _db._transaction);
         return rows > 0;
     }
 
@@ -333,6 +333,60 @@ public class TransactionsRepository : AccountScopedRepositoryBase<Transactions>,
         }, _db._transaction);
     }
 
+    public async Task<IPagedResult<Transactions>> FilterByPaidAsync(long accountId, long month, long year, bool paid, int pageNumber = 1)
+    {
+
+        const int pageSize = 10;
+
+        pageNumber = Math.Max(1, pageNumber);
+        var offset = (pageNumber - 1) * pageSize;
+
+        var query = @"
+        SELECT t.*, ct.*, cat.*
+        FROM Transactions t
+        INNER JOIN Contact ct ON t.ContactId = ct.Id
+        INNER JOIN Category cat ON t.CategoryId = cat.Id
+        WHERE t.AccountId = @AccountId 
+            AND (EXTRACT(MONTH FROM t.CompetenceDate) = @Month AND EXTRACT(YEAR FROM t.CompetenceDate) = @Year) AND t.Paid = @Paid
+        ORDER BY t.Id DESC
+        LIMIT @PageSize OFFSET @OffSet;
+
+        SELECT COUNT(1)
+        FROM Transactions t
+        INNER JOIN Contact ct ON t.ContactId = ct.Id
+        INNER JOIN Category cat ON t.CategoryId = cat.Id
+        WHERE t.AccountId = @AccountId 
+            AND (EXTRACT(MONTH FROM t.CompetenceDate) = @Month AND EXTRACT(YEAR FROM t.CompetenceDate) = @Year) AND t.Paid = @Paid;";
+
+        if (_db._connection.State != ConnectionState.Open)
+        {
+            throw new Exception("connection lost");
+        }
+
+        using var multi = await _db._connection.QueryMultipleAsync(
+            query,
+            new { AccountId = accountId, Month = month, Year = year,Paid = paid, OffSet = offset, PageSize = pageSize },
+            _db._transaction);
+
+        var items = multi.Read<Transactions, Contact, Category, Transactions>(
+            (t, c, cat) =>
+            {
+                t.Contact = c;
+                t.Category = cat;
+                return t;
+            },
+            splitOn: "Id,Id").ToList();
+
+        var totalRecords = (int)await multi.ReadSingleAsync<long>();
+
+        return new IPagedResult<Transactions>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalRecords = totalRecords,
+            Items = items
+        };
+    }
 }
 
 

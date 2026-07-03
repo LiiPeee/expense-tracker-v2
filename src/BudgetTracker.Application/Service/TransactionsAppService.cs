@@ -5,6 +5,7 @@ using BudgetTracker.Core.Domain.Dtos.Output;
 using BudgetTracker.Core.Domain.Dtos.Request.Transaction;
 using BudgetTracker.Core.Domain.Entities;
 using BudgetTracker.Core.Domain.Enum;
+using BudgetTracker.Core.Domain.Models.Request.Transaction;
 using BudgetTracker.Core.Domain.Repository;
 using BudgetTracker.Core.Domain.Service;
 using BudgetTracker.Core.Domain.UnitOfWork;
@@ -99,7 +100,7 @@ public class TransactionsAppService : ITransactionsAppService
     }
 
     // EDIT TRANSACTION (full update of an owned transaction)
-    public async Task EditTransactionAsync(long accountId, long id, CreateTrasactionRequest transactionRequest)
+    public async Task EditTransactionAsync(long accountId, long id, EditTransactionRequest transactionRequest)
     {
         try
         {
@@ -121,8 +122,6 @@ public class TransactionsAppService : ITransactionsAppService
                 { Name = transactionRequest.SubCategoryName, IsActive = true, CategoryId = category, AccountId = accountId });
 
             existing.Amount = transactionRequest.Amount;
-            existing.Name = transactionRequest.TransactionName;
-            existing.Description = transactionRequest.Description;
             existing.CategoryId = category;
             existing.ContactId = contact.Id;
             existing.SubCategoryId = subCategory.Id;
@@ -153,21 +152,9 @@ public class TransactionsAppService : ITransactionsAppService
             if (transaction is null)
                 throw new UnauthorizedAccessException("Transaction not found or access denied");
 
-            if (paidTransactionRequest.Paid != true || transaction.Paid == true)
-                return;
-
             _unitOfWork.BeginTransaction();
 
-            var flipped = await _transactionRepository.MarkAsPaidAsync(transaction.Id, accountId);
-
-            if (flipped)
-            {
-                var delta = transaction.TypeTransactionId == (long)TypeTransactions.EXPENSE
-                    ? -transaction.Amount
-                    : transaction.Amount;
-
-                await _accountRepository.UpdateBalanceAtomicAsync(accountId, delta);
-            }
+            var flipped = await _transactionRepository.MarkAsPaidAsync(transaction.Id, accountId, paidTransactionRequest.Paid);
 
             _unitOfWork.Commit();
         }
@@ -277,11 +264,11 @@ public class TransactionsAppService : ITransactionsAppService
     }
 
     // GET TRANSANCTION BY TYPE
-    public async Task<IPagedResult<FilterByMonthAndYearOutPut>> FilterTransactionByTypeAsync(long accountId, TypeTransaction type, long month, long year)
+    public async Task<IPagedResult<FilterByMonthAndYearOutPut>> FilterTransactionByTypeAsync(long accountId, TypeTransaction type, long month, long year, int pageNumber = 1)
     {
         try
         {
-            var transactions = await _transactionRepository.FilterTransactionsByTypeAsync(accountId, type.ToString(), month, year);
+            var transactions = await _transactionRepository.FilterTransactionsByTypeAsync(accountId, type.ToString(), month, year, pageNumber);
 
             var filter = new List<FilterByMonthAndYearOutPut>();
 
@@ -328,11 +315,11 @@ public class TransactionsAppService : ITransactionsAppService
     }
 
     // GET TRANSACTION BY CATEGORY, TYPE, MONTH AND YEAR
-    public async Task<IPagedResult<FilterByMonthAndYearOutPut>> FilterTransactionsByCategoryAsync(long accountId, Categories categoryName, TypeTransaction type, long month, long year)
+    public async Task<IPagedResult<FilterByMonthAndYearOutPut>> FilterTransactionsByCategoryAsync(long accountId, Categories categoryName, TypeTransaction type, long month, long year, int pageNumber = 1)
     {
         try
         {
-            var transactions = await _transactionRepository.FilterTransactionsByCategoryAsync(accountId, categoryName.ToString(), type.ToString(), month, year);
+            var transactions = await _transactionRepository.FilterTransactionsByCategoryAsync(accountId, categoryName.ToString(), type.ToString(), month, year, pageNumber);
 
             var filter = new List<FilterByMonthAndYearOutPut>();
 
@@ -435,24 +422,31 @@ public class TransactionsAppService : ITransactionsAppService
 
         var filter = new List<FilterByMonthAndYearOutPut>();
 
-        foreach (var t in transactions.Items)
+        foreach (var i in transactions.Items)
         {
-            var outputFilter = new FilterByMonthAndYearOutPut()
+            filter.Add(new FilterByMonthAndYearOutPut
             {
-                Amount = t.Amount,
-                Description = t.Description,
+                Id = i.Id,
+                Amount = i.Amount,
+                Description = i.Description,
+                Name = i.Name,
+                Paid = i.Paid,
+                TypeTransaction = i.TypeTransactionId,
+                Recurrence = i.RecurrenceId,
                 Contact = new ContactOutput
                 {
-                    Email = t.Contact.Email,
-                    Name = t.Contact.Name,
-                    Phone = t.Contact.Phone
+                    Email = i.Contact.Email,
+                    Name = i.Contact.Name,
+                    Phone = i.Contact.Phone
                 },
-                Name = t.Name,
-                Paid = t.Paid,
-                CompetenceDate = t.CompetenceDate
-            };
-
-            filter.Add(outputFilter);
+                Category = new CategoryOutput
+                {
+                    Name = i.Category.Name,
+                },
+                QuantityOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.QuantityInstallment : null,
+                DateOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.DateOfInstallment : null,
+                CompetenceDate = i.CompetenceDate
+            });
         }
 
         return new IPagedResult<FilterByMonthAndYearOutPut>
@@ -538,6 +532,49 @@ public class TransactionsAppService : ITransactionsAppService
             _unitOfWork.Rollback();
             throw;
         }
+    }
+
+    public async Task<IPagedResult<FilterByMonthAndYearOutPut>> FilterTransactionByPaidAsync(long accountId, long month, long year,bool paid ,int pageNumber = 1)
+    {
+
+        var transactions = await _transactionRepository.FilterByPaidAsync(accountId, month, year,paid, pageNumber);
+
+        var filter = new List<FilterByMonthAndYearOutPut>();
+
+        foreach (var i in transactions.Items)
+        {
+            filter.Add(new FilterByMonthAndYearOutPut
+            {
+                Id = i.Id,
+                Amount = i.Amount,
+                Description = i.Description,
+                Name = i.Name,
+                Paid = i.Paid,
+                TypeTransaction = i.TypeTransactionId,
+                Recurrence = i.RecurrenceId,
+                Contact = new ContactOutput
+                {
+                    Email = i.Contact.Email,
+                    Name = i.Contact.Name,
+                    Phone = i.Contact.Phone
+                },
+                Category = new CategoryOutput
+                {
+                    Name = i.Category.Name,
+                },
+                QuantityOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.QuantityInstallment : null,
+                DateOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.DateOfInstallment : null,
+                CompetenceDate = i.CompetenceDate
+            });
+        }
+
+        return new IPagedResult<FilterByMonthAndYearOutPut>
+        {
+            PageNumber = transactions.PageNumber,
+            PageSize = transactions.PageSize,
+            TotalRecords = transactions.TotalRecords,
+            Items = filter
+        };
     }
 }
 
