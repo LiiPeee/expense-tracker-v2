@@ -1,12 +1,13 @@
-using System.ComponentModel.DataAnnotations;
-using System.Security.Claims;
 using BudgetTracker.Core.Domain.Dtos.Output;
 using BudgetTracker.Core.Domain.Dtos.Request.Transaction;
 using BudgetTracker.Core.Domain.Entities;
 using BudgetTracker.Core.Domain.Enum;
+using BudgetTracker.Core.Domain.Models.Request.Transaction;
 using BudgetTracker.Core.Domain.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 
 namespace BudgetTracker.WebApi.Controller
 {
@@ -31,7 +32,7 @@ namespace BudgetTracker.WebApi.Controller
         }
 
         [HttpPatch("[action]")]
-        public async Task<ActionResult> EditAsync([FromBody] PaidTransactionRequest paidTransactionRequest)
+        public async Task<ActionResult> PaidAsync([FromBody] PaidTransactionRequest paidTransactionRequest)
         {
             var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             await _transactionAppService.PaidAsync(accountId, paidTransactionRequest);
@@ -39,7 +40,7 @@ namespace BudgetTracker.WebApi.Controller
         }
 
         [HttpPost("[action]")]
-        public async Task<ActionResult> EditTransactionAsync([FromQuery] long id, [FromBody] CreateTrasactionRequest transactionRequest)
+        public async Task<ActionResult> EditTransactionAsync([FromQuery] long id, [FromBody] EditTransactionRequest transactionRequest)
         {
             var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             await _transactionAppService.EditTransactionAsync(accountId, id, transactionRequest);
@@ -51,20 +52,21 @@ namespace BudgetTracker.WebApi.Controller
             [FromQuery] Categories categoryName,
             [FromQuery][Range(1, 12)] long month,
             [FromQuery][Range(2000, 2100)] long year,
-            [FromQuery] TypeTransaction type)
+            [FromQuery] TypeTransaction type, [FromQuery][Range(1, int.MaxValue)] int pageNumber = 1)
         {
             var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            return Ok(await _transactionAppService.FilterTransactionsByCategoryAsync(accountId, categoryName, type, month, year));
+            return Ok(await _transactionAppService.FilterTransactionsByCategoryAsync(accountId, categoryName, type, month, year, pageNumber));
         }
 
         [HttpGet("[action]")]
         public async Task<ActionResult<IPagedResult<FilterByMonthAndYearOutPut>>> GetByTypeAsync(
             [FromQuery][Range(1, 12)] long month,
             [FromQuery][Range(2000, 2100)] long year,
-            [FromQuery] TypeTransaction type)
+            [FromQuery] TypeTransaction type,
+            [FromQuery][Range(1, int.MaxValue)] int pageNumber = 1)
         {
             var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            return Ok(await _transactionAppService.FilterTransactionByTypeAsync(accountId, type, month, year));
+            return Ok(await _transactionAppService.FilterTransactionByTypeAsync(accountId, type, month, year, pageNumber));
         }
 
         [HttpGet("[action]")]
@@ -75,6 +77,17 @@ namespace BudgetTracker.WebApi.Controller
         {
             var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             return Ok(await _transactionAppService.FilterByMonthAndYearAsync(accountId, month, year, pageNumber));
+        }
+
+        [HttpGet("[action]")]
+        public async Task<ActionResult<IPagedResult<FilterByMonthAndYearOutPut>>> GetByPaidAndMonthAndYearAsync(
+           [FromQuery][Range(1, 12)] long month,
+           [FromQuery][Range(2000, 2100)] long year,
+           [FromQuery] bool paid,
+           [FromQuery][Range(1, int.MaxValue)] int pageNumber = 1)
+        {
+            var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            return Ok(await _transactionAppService.FilterTransactionByPaidAsync(accountId, month, year,paid ,pageNumber));
         }
 
         [HttpGet("[action]")]

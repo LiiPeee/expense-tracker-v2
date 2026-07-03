@@ -50,7 +50,7 @@ namespace BudgetTracker.Infrastructure.Persistence.Repository
                 },
                 splitOn: "Id,Id").ToList();
 
-            var totalRecords = items.Count;
+            var totalRecords = (int)await multi.ReadSingleAsync<long>();
 
             return new IPagedResult<BudgetLimit?>
             {

@@ -13,12 +13,9 @@ public interface ITransactionsRepository : IAccountScopedRepository<Transactions
     Task<List<Transactions>> FilterIncomeMonthAndYearAsync(long accountId, long year, long month);
     Task<List<Transactions>> FilterExpenseMonthWithContactAsync(long accountId, long year, long month);
     Task<IPagedResult<Transactions>> FilterTransactionsByTypeAsync(long accountId, string type, long month, long year, int pageNumber = 1);
-
-    /// <summary>Atomically flips Paid false→true for an owned transaction. Returns true only for the call that performed the flip.</summary>
-    Task<bool> MarkAsPaidAsync(long id, long accountId);
-
-    /// <summary>Total of EXPENSE transactions for a category in the given month/year, scoped to the account.</summary>
+    Task<bool> MarkAsPaidAsync(long id, long accountId, bool paid);
     Task<decimal> GetExpenseTotalByCategoryAsync(long accountId, long categoryId, int month, int year);
+    Task<IPagedResult<Transactions>> FilterByPaidAsync(long accountId, long month, long year, bool paid, int pageNumber = 1);
 }
 
 
