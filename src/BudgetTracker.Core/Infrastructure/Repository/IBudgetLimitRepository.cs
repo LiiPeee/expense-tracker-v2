@@ -12,6 +12,6 @@ namespace BudgetTracker.Core.Infrastructure.Repository
     public interface IBudgetLimitRepository : IAccountScopedRepository<BudgetLimit>
     {
         Task<BudgetLimit?> GetByCategoryAndAccountIdAsync(long categoryId, long accountId);
-        Task<IPagedResult<BudgetLimit?>> GetByAccountIdAsync(long accountId, int pageNumber = 1);
+        Task<IPagedResult<BudgetLimit?>> GetByAccountIdAsync(long month, long year,long accountId, int pageNumber = 1);
     }
 }

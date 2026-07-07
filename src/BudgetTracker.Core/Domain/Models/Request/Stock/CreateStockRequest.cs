@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BudgetTracker.Core.Domain.Models.Request
+namespace BudgetTracker.Core.Domain.Models.Request.Stock
 {
     public class CreateStockRequest
     {

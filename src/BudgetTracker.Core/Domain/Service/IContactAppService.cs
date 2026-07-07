@@ -1,6 +1,6 @@
 using BudgetTracker.Application.Dtos.Request;
 using BudgetTracker.Core.Domain.Entities;
-using BudgetTracker.Core.Domain.Models.Request.Transaction;
+using BudgetTracker.Core.Domain.Models.Request.Contact;
 
 namespace BudgetTracker.Core.Domain.Service;
 

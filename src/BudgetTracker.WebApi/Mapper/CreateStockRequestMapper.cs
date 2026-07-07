@@ -1,6 +1,6 @@
 ﻿using BudgetTracker.Core.Domain.Entities;
-using BudgetTracker.Core.Domain.Models.Request;
 using BudgetTracker.Core.Domain.Models.Request.BudgetLimit;
+using BudgetTracker.Core.Domain.Models.Request.Stock;
 using BudgetTracker.WebApi.Models.BudgetLimit;
 using BudgetTracker.WebApi.Models.Stock;
 

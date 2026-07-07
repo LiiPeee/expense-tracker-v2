@@ -1,6 +1,6 @@
 using System.Security.Claims;
 using BudgetTracker.Core.Domain.Entities;
-using BudgetTracker.Core.Domain.Models.Request;
+using BudgetTracker.Core.Domain.Models.Request.SubCategory;
 using BudgetTracker.Core.Domain.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

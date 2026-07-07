@@ -1,5 +1,5 @@
-using BudgetTracker.Application.Dtos.Request;
 using BudgetTracker.Core.Domain.Models.Output;
+using BudgetTracker.Core.Domain.Models.Request.Category;
 
 
 namespace BudgetTracker.Core.Domain.Service

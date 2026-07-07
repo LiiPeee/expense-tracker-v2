@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using BudgetTracker.Core.Domain.Enum;
 
-namespace BudgetTracker.Core.Domain.Models.Request.Transaction;
+namespace BudgetTracker.Core.Domain.Models.Request.Contact;
 
 public class ContactRequest
 {

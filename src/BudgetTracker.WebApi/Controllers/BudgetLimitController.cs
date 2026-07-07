@@ -1,10 +1,11 @@
-﻿using System.Security.Claims;
-using BudgetTracker.Core.Domain.Entities;
+﻿using BudgetTracker.Core.Domain.Entities;
 using BudgetTracker.Core.Domain.Service;
 using BudgetTracker.WebApi.Mapper;
 using BudgetTracker.WebApi.Models.BudgetLimit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 
 namespace BudgetTracker.WebApi.Controllers
 {
@@ -23,11 +24,12 @@ namespace BudgetTracker.WebApi.Controllers
         }
 
         [HttpGet("[action]")]
-        public async Task<ActionResult> GetByAccountIdAsync( [FromQuery] int pageNumber)
+        public async Task<ActionResult> GetByAccountIdAsync([FromQuery][Range(1, 12)] long month,
+            [FromQuery][Range(2000, 2100)] long year, [FromQuery] int pageNumber)
         {
             var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-            return Ok(await _budgetLimitService.GetByAccountIdAsync(accountId, pageNumber));
+            return Ok(await _budgetLimitService.GetByAccountIdAsync(month,year, accountId, pageNumber));
         }
     }
 }

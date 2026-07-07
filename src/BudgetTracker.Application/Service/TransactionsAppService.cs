@@ -126,7 +126,6 @@ public class TransactionsAppService : ITransactionsAppService
             existing.ContactId = contact.Id;
             existing.SubCategoryId = subCategory.Id;
             existing.TypeTransactionId = (long)transactionRequest.TypeTransaction;
-            existing.RecurrenceId = (long)transactionRequest.Recurrence;
             existing.Paid = transactionRequest.Paid;
             existing.NumberOfInstallment = transactionRequest.NumberOfInstallment;
             existing.UpdatedAt = DateTime.UtcNow;

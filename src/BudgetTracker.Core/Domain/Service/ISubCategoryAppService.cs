@@ -1,5 +1,5 @@
 using BudgetTracker.Core.Domain.Entities;
-using BudgetTracker.Core.Domain.Models.Request;
+using BudgetTracker.Core.Domain.Models.Request.SubCategory;
 
 namespace BudgetTracker.Core.Domain.Service
 {
