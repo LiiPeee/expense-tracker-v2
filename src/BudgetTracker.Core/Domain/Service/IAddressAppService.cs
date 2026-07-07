@@ -1,4 +1,4 @@
-using BudgetTracker.Application.Dtos.Request;
+using BudgetTracker.Core.Domain.Models.Request.Address;
 
 namespace BudgetTracker.Core.Domain.Service
 {

@@ -1,7 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace BudgetTracker.Application.Dtos.Request;
+namespace BudgetTracker.Core.Domain.Models.Request.Category;
 
 public class CategoryRequest
 {

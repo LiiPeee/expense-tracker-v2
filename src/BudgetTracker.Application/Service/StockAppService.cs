@@ -1,7 +1,7 @@
 ﻿using BudgetTracker.Core.Domain.Dtos.Output;
 using BudgetTracker.Core.Domain.Entities;
 using BudgetTracker.Core.Domain.Models.Output;
-using BudgetTracker.Core.Domain.Models.Request;
+using BudgetTracker.Core.Domain.Models.Request.Stock;
 using BudgetTracker.Core.Domain.Service;
 using BudgetTracker.Core.Domain.UnitOfWork;
 using BudgetTracker.Core.Infrastructure.Repository;

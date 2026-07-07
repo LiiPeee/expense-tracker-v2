@@ -41,10 +41,6 @@ namespace BudgetTracker.Core.Domain.Models.Request.Transaction
         [JsonPropertyName("numberOfInstallment")]
         public int? NumberOfInstallment { get; set; }
 
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        [JsonPropertyName("recurrence")]
-        public Recurrence Recurrence { get; set; }
-
         [StringLength(50)]
         [JsonPropertyName("contactName")]
         public string ContactName { get; set; } = null!;

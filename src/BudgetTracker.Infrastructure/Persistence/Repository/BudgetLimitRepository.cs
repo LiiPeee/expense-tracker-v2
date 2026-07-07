@@ -13,7 +13,7 @@ namespace BudgetTracker.Infrastructure.Persistence.Repository
         {
         }
 
-        public async Task<IPagedResult<BudgetLimit?>> GetByAccountIdAsync(long accountId, int pageNumber = 1)
+        public async Task<IPagedResult<BudgetLimit?>> GetByAccountIdAsync(long month, long year, long accountId, int pageNumber = 1)
         {
             const int pageSize = 10;
 
@@ -24,7 +24,7 @@ namespace BudgetTracker.Infrastructure.Persistence.Repository
                 SELECT bt.*, cat.*
                 FROM BudgetLimit bt
                 INNER JOIN Category cat ON bt.CategoryId = cat.Id
-                WHERE bt.AccountId = @AccountId
+                WHERE bt.AccountId = @AccountId AND bt.Month = @Month AND bt.Year = @Year
                 ORDER BY bt.Id DESC
                 LIMIT @PageSize OFFSET @OffSet;
 
@@ -39,7 +39,7 @@ namespace BudgetTracker.Infrastructure.Persistence.Repository
 
             using var multi = await _db._connection.QueryMultipleAsync(
                 query,
-                new { AccountId = accountId, OffSet = offset, PageSize = pageSize },
+                new { AccountId = accountId, Month = month, Year = year, OffSet = offset, PageSize = pageSize },
                 _db._transaction);
 
             var items = multi.Read<BudgetLimit, Category, BudgetLimit>(

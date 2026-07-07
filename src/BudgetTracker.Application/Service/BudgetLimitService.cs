@@ -58,9 +58,9 @@ namespace BudgetTracker.Application.Service
             }
         }
 
-        public async Task<IPagedResult<BudgetLimitOutput>> GetByAccountIdAsync(long accountId, int pageNumber = 1)
+        public async Task<IPagedResult<BudgetLimitOutput>> GetByAccountIdAsync(long month, long year,long accountId, int pageNumber = 1)
         {
-            var result = await _budgetLimitRepository.GetByAccountIdAsync(accountId, pageNumber);
+            var result = await _budgetLimitRepository.GetByAccountIdAsync(month, year,accountId, pageNumber);
 
             var outputs = new List<BudgetLimitOutput>();
 

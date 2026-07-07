@@ -1,5 +1,4 @@
-
-namespace BudgetTracker.Core.Domain.Models.Request
+namespace BudgetTracker.Core.Domain.Models.Request.SubCategory
 {
     public class CreateSubCategoryRequest
     {

@@ -1,5 +1,5 @@
-using BudgetTracker.Application.Dtos.Request;
 using BudgetTracker.Core.Domain.Entities;
+using BudgetTracker.Core.Domain.Models.Request.Address;
 using BudgetTracker.Core.Domain.Repository;
 using BudgetTracker.Core.Domain.Service;
 using BudgetTracker.Core.Domain.UnitOfWork;

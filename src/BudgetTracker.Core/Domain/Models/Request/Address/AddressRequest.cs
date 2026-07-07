@@ -1,7 +1,7 @@
 using BudgetTracker.Core.Domain.Entities;
 using System;
 
-namespace BudgetTracker.Application.Dtos.Request;
+namespace BudgetTracker.Core.Domain.Models.Request.Address;
 
 public class AddressRequest
 {
