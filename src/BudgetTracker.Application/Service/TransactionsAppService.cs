@@ -202,6 +202,7 @@ public class TransactionsAppService : ITransactionsAppService
                         Name = t.Contact.Name,
                         Phone = t.Contact.Phone
                     },
+                    QuantityOfInstallment = t.QuantityInstallment,
                     Name = t.Name,
                     Paid = t.Paid,
                     CompetenceDate = t.CompetenceDate
@@ -413,6 +414,55 @@ public class TransactionsAppService : ITransactionsAppService
         }
     }
 
+    public async Task<IPagedResult<FilterByMonthAndYearOutPut>> FilterAllInstallmentsAsync(long accountId, long month, long year, TypeTransaction type, int pageNumber = 1)
+    {
+        try
+        {
+            var transactions = await _transactionRepository.FilterAllInstallmentsAsync(accountId, month, year, type.ToString(), pageNumber);
+
+            var filter = new List<FilterByMonthAndYearOutPut>();
+
+            foreach (var i in transactions.Items)
+            {
+                filter.Add(new FilterByMonthAndYearOutPut
+                {
+                    Id = i.Id,
+                    Amount = i.Amount,
+                    Description = i.Description,
+                    Name = i.Name,
+                    Paid = i.Paid,
+                    TypeTransaction = i.TypeTransactionId,
+                    Recurrence = i.RecurrenceId,
+                    Contact = new ContactOutput
+                    {
+                        Email = i.Contact.Email,
+                        Name = i.Contact.Name,
+                        Phone = i.Contact.Phone
+                    },
+                    Category = new CategoryOutput
+                    {
+                        Name = i.Category.Name,
+                    },
+                    QuantityOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.QuantityInstallment : null,
+                    DateOfInstallment = !string.IsNullOrEmpty(i.QuantityInstallment) ? i.DateOfInstallment : null,
+                    CompetenceDate = i.CompetenceDate
+                });
+            }
+
+            return new IPagedResult<FilterByMonthAndYearOutPut>
+            {
+                PageNumber = transactions.PageNumber,
+                PageSize = transactions.PageSize,
+                TotalRecords = transactions.TotalRecords,
+                Items = filter
+            };
+        }
+        catch (Exception ex)
+        {
+            throw;
+        }
+    }
+
     //GET TRANSACTION BY CONTACT AND TYPE
     public async Task<IPagedResult<FilterByMonthAndYearOutPut>> FilterByContactAndMonth(long accountId, long year, long month, TypeTransaction type, long contactId, int pageNumber = 1)
     {
@@ -533,10 +583,10 @@ public class TransactionsAppService : ITransactionsAppService
         }
     }
 
-    public async Task<IPagedResult<FilterByMonthAndYearOutPut>> FilterTransactionByPaidAsync(long accountId, long month, long year,bool paid ,int pageNumber = 1)
+    public async Task<IPagedResult<FilterByMonthAndYearOutPut>> FilterTransactionByPaidAsync(long accountId, long month, long year, bool paid, int pageNumber = 1)
     {
 
-        var transactions = await _transactionRepository.FilterByPaidAsync(accountId, month, year,paid, pageNumber);
+        var transactions = await _transactionRepository.FilterByPaidAsync(accountId, month, year, paid, pageNumber);
 
         var filter = new List<FilterByMonthAndYearOutPut>();
 

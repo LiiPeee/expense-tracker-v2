@@ -197,11 +197,14 @@ CREATE TABLE IF NOT EXISTS Address (
     Country   VARCHAR(100) NOT NULL,
     IsPrimary BOOLEAN      NOT NULL DEFAULT FALSE,
     ContactId BIGINT       NOT NULL,
+    AccountId BIGINT       NOT NULL,
     CreatedAt TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     UpdatedAt TIMESTAMPTZ,
 
     CONSTRAINT fk_address_contact
-        FOREIGN KEY (ContactId) REFERENCES Contact (Id) ON DELETE CASCADE
+        FOREIGN KEY (ContactId) REFERENCES Contact (Id) ON DELETE CASCADE,
+    CONSTRAINT fk_address_account
+        FOREIGN KEY (AccountId) REFERENCES Account (Id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS Transactions (
@@ -305,6 +308,7 @@ CREATE INDEX IF NOT EXISTS idx_contact_accountid                  ON Contact    
 CREATE INDEX IF NOT EXISTS idx_contact_typecontactid              ON Contact      (TypeContactId);
 
 CREATE INDEX IF NOT EXISTS idx_address_contactid                  ON Address      (ContactId);
+CREATE INDEX IF NOT EXISTS idx_address_accountid                  ON Address      (AccountId);
 
 CREATE INDEX IF NOT EXISTS idx_transactions_accountid             ON Transactions (AccountId);
 CREATE INDEX IF NOT EXISTS idx_transactions_categoryid            ON Transactions (CategoryId);

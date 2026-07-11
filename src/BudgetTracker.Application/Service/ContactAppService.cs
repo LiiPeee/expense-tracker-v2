@@ -52,6 +52,7 @@ public class ContactAppService : IContactAppService
                 Street = request.Street,
                 ZipCode = request.ZipCode,
                 ContactId = savedContact.Id,
+                AccountId = accountId,
             };
 
             await _addressRepository.AddAsync(address);

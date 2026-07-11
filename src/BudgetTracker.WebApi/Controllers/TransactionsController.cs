@@ -79,6 +79,19 @@ namespace BudgetTracker.WebApi.Controller
             return Ok(await _transactionAppService.FilterByMonthAndYearAsync(accountId, month, year, pageNumber));
         }
 
+
+        [HttpGet("[action]")]
+        public async Task<ActionResult<IPagedResult<FilterByMonthAndYearOutPut>>> GetAllInstallmentsAsync(
+            [FromQuery][Range(1, 12)] long month,
+            [FromQuery][Range(2000, 2100)] long year,
+            [FromQuery] TypeTransaction type,
+            [FromQuery][Range(1, int.MaxValue)] int pageNumber = 1)
+        {
+            var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            return Ok(await _transactionAppService.FilterAllInstallmentsAsync(accountId, month, year, type, pageNumber));
+        }
+
+
         [HttpGet("[action]")]
         public async Task<ActionResult<IPagedResult<FilterByMonthAndYearOutPut>>> GetByPaidAndMonthAndYearAsync(
            [FromQuery][Range(1, 12)] long month,
@@ -87,7 +100,7 @@ namespace BudgetTracker.WebApi.Controller
            [FromQuery][Range(1, int.MaxValue)] int pageNumber = 1)
         {
             var accountId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            return Ok(await _transactionAppService.FilterTransactionByPaidAsync(accountId, month, year,paid ,pageNumber));
+            return Ok(await _transactionAppService.FilterTransactionByPaidAsync(accountId, month, year, paid, pageNumber));
         }
 
         [HttpGet("[action]")]
