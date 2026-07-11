@@ -4,7 +4,7 @@ using System.Data;
 
 namespace BudgetTracker.Infrastructure.Persistence.Repository;
 
-public class AddressRepository : RepositoryBase<Address>, IAddressRepository
+public class AddressRepository : AccountScopedRepositoryBase<Address>, IAddressRepository
 {
     public AddressRepository(DbSession connection) : base(connection)
     {

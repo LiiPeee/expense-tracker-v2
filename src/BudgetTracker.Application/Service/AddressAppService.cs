@@ -29,6 +29,7 @@ public class AddressAppService(IContactRepository contactRepository, IAddressRep
                 Street = addressRequest.Street,
                 ZipCode = addressRequest.ZipCode,
                 ContactId = contact.Id,
+                AccountId = accountId,
             };
 
             _unitOfWork.BeginTransaction();
